@@ -1,0 +1,14 @@
+{
+  "name": "@rad/sqlite-runtime",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^7.4.3",
+    "sql-template-tag": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.4.0"
+  }
+}
