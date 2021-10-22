@@ -163,7 +163,7 @@ export class tblClient extends Runtime.GenericClient {
   return { name: schema.name, clientType, source };
 }
 
-export function generate(schema: Database): string {
+export function generateClient(schema: Database): string {
   const tableInfo = Object.values(schema.tables).map(generateTableClient);
   const typeDecls = [
     `$db: Runtime.Database;`,

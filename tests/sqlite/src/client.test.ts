@@ -1,6 +1,6 @@
 import { SQL } from "@rad/sqlite";
 
-import { createClient, Client } from "./test_expected.js";
+import { createClient, Client } from "./client.generated.js";
 
 describe("generated client", () => {
   let client: Client;
@@ -21,23 +21,26 @@ describe("generated client", () => {
   describe("findFirst", () => {
     it("returns results", () => {
       const obj = client.tbl.findFirst({ where: { col: "first" } });
-      expect(obj).toEqual({ col: "first" });
+      expect(obj).toEqual({ col: "first", rowid: expect.any(Number) });
     });
   });
 
   describe("findMany", () => {
     it("returns results", () => {
       const obj = client.tbl.findMany({ where: { col: "first" } });
-      expect(obj).toEqual([{ col: "first" }]);
+      expect(obj).toEqual([{ col: "first", rowid: expect.any(Number) }]);
     });
   });
 
   describe("create", () => {
     it("adds the item", () => {
       const obj = client.tbl.create({ data: { col: "second" } });
-      expect(obj).toEqual({ col: "second" });
+      expect(obj).toEqual({ col: "second", rowid: expect.any(Number) });
       const all = client.tbl.findMany({});
-      expect(all).toEqual([{ col: "first" }, { col: "second" }]);
+      expect(all).toEqual([
+        { col: "first", rowid: expect.any(Number) },
+        { col: "second", rowid: expect.any(Number) },
+      ]);
     });
   });
 
@@ -49,9 +52,9 @@ describe("generated client", () => {
       expect(obj.changes).toEqual(2);
       const all = client.tbl.findMany({});
       expect(all).toEqual([
-        { col: "first" },
-        { col: "second" },
-        { col: "third" },
+        { col: "first", rowid: expect.any(Number) },
+        { col: "second", rowid: expect.any(Number) },
+        { col: "third", rowid: expect.any(Number) },
       ]);
     });
   });
@@ -64,7 +67,7 @@ describe("generated client", () => {
       });
       expect(obj.changes).toEqual(1);
       const all = client.tbl.findMany({});
-      expect(all).toEqual([{ col: "1st" }]);
+      expect(all).toEqual([{ col: "1st", rowid: expect.any(Number) }]);
     });
 
     it("respects limits", () => {

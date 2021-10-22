@@ -101,10 +101,10 @@
   },
   "files": [],
   "references": [
+    { "path": "pkg/cli" },
     { "path": "pkg/core" },
-    { "path": "pkg/sqlite-generator" },
     { "path": "pkg/sqlite" },
-    { "path": "tests/sqlite" },
+    { "path": "pkg/sqlite-generator" },
   ],
   "exclude": [
     "**/*.test.ts"

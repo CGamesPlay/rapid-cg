@@ -1,11 +1,15 @@
 {
-  "name": "@rad/sqlite-generator",
+  "name": "@rad/cli",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "rad": "dist/cli.js"
+  },
   "license": "MIT",
   "dependencies": {
-    "prettier": "^2.4.1"
+    "commander": "^8.3.0",
+    "ts-node": "^10.4.0"
   },
   "devDependencies": {}
 }

@@ -5,9 +5,7 @@
     "outDir": "dist/"
   },
   "references": [
-    { "path": "../../pkg/core" },
-    { "path": "../../pkg/sqlite" },
-    { "path": "../../pkg/sqlite-generator" }
+    { "path": "../../pkg/core" }
   ],
   "include": [
     "src/**/*.ts"
