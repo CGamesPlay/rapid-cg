@@ -1,4 +1,4 @@
-import { SQL } from "@rad/sqlite-runtime";
+import { SQL } from "@rad/sqlite";
 
 import { createClient, Client } from "./test_expected.js";
 

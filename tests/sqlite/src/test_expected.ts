@@ -1,5 +1,5 @@
-import * as Runtime from "@rad/sqlite-runtime";
-import { SQL } from "@rad/sqlite-runtime";
+import * as Runtime from "@rad/sqlite";
+import { SQL } from "@rad/sqlite";
 
 export type tbl = {
   col: string;

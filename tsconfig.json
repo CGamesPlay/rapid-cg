@@ -102,7 +102,7 @@
   "files": [],
   "references": [
     { "path": "pkg/core" },
-    { "path": "pkg/sqlite-runtime" },
+    { "path": "pkg/sqlite" },
     { "path": "tests/sqlite" },
   ],
   "exclude": [
