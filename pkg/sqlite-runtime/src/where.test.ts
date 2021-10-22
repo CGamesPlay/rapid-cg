@@ -1,5 +1,10 @@
 import SQL from "./tag.js";
-import { makeWhereString, makeWhereNumber } from "./where.js";
+import {
+  WhereString,
+  makeWhereString,
+  makeWhereNumber,
+  makeWhereChainable,
+} from "./where.js";
 
 import "./testUtils.js";
 
@@ -40,7 +45,10 @@ describe("makeWhereString", () => {
       SQL`${col} = ${"value"}`
     );
   });
-  it("handler empty clauses", () => {
+  it("handles simple null", () => {
+    expect(makeWhereString("col", null)).toEqualSQL(SQL`${col} IS NULL`);
+  });
+  it("handles empty clauses", () => {
     expect(makeWhereString("col", {})).toEqualSQL(SQL`1 = 1`);
   });
   it("handles like", () => {
@@ -54,7 +62,89 @@ describe("makeWhereNumber", () => {
   it("handles simple equality", () => {
     expect(makeWhereNumber("col", 2)).toEqualSQL(SQL`${col} = ${2}`);
   });
+  it("handles simple null", () => {
+    expect(makeWhereNumber("col", null)).toEqualSQL(SQL`${col} IS NULL`);
+  });
   it("handler empty clauses", () => {
     expect(makeWhereNumber("col", {})).toEqualSQL(SQL`1 = 1`);
+  });
+});
+
+type WhereTbl = {
+  col?: WhereString;
+  AND?: WhereTbl | WhereTbl[];
+  OR?: WhereTbl | WhereTbl[];
+  NOT?: WhereTbl | WhereTbl[];
+};
+
+const makeWhereTbl = makeWhereChainable((component: WhereTbl) => {
+  if ("col" in component) return makeWhereString("col", component.col!);
+  return undefined;
+});
+
+describe("makeWhereChainable", () => {
+  it("handles empty conditions", () => {
+    expect(makeWhereTbl({})).toEqualSQL(SQL`1 = 1`);
+    expect(makeWhereTbl(undefined)).toEqualSQL(SQL`1 = 1`);
+  });
+
+  it("handles simple conditions", () => {
+    expect(makeWhereTbl({ col: "one" })).toEqualSQL(SQL`${col} = ${"one"}`);
+  });
+
+  it("handles chained ANDs", () => {
+    expect(
+      makeWhereTbl({ col: "one", AND: { col: { not: null } } })
+    ).toEqualSQL(SQL`${col} = ${"one"} AND ${col} IS NOT NULL`);
+  });
+
+  it("handles lists of ANDs", () => {
+    expect(
+      makeWhereTbl({
+        AND: [{ col: { not: null } }, { col: { equals: "one" } }],
+      })
+    ).toEqualSQL(SQL`${col} IS NOT NULL AND ${col} = ${"one"}`);
+  });
+
+  it("handles chained ORs", () => {
+    // Note that this is counter-intuitive but correct. We combine all of the
+    // top-level keys using AND, so chaining OR in this way doesn't make much
+    // sense.
+    expect(makeWhereTbl({ col: "one", OR: { col: "two" } })).toEqualSQL(
+      SQL`${col} = ${"one"} AND ( ${col} = ${"two"} )`
+    );
+  });
+
+  it("handles lists of ORs", () => {
+    expect(
+      makeWhereTbl({
+        OR: [{ col: "one" }, { col: "two" }],
+      })
+    ).toEqualSQL(SQL`( ${col} = ${"one"} OR ${col} = ${"two"} )`);
+  });
+
+  it("handles chained NOTs", () => {
+    expect(makeWhereTbl({ col: "one", NOT: { col: null } })).toEqualSQL(
+      SQL`${col} = ${"one"} AND NOT ( ${col} IS NULL )`
+    );
+  });
+
+  it("handles lists of ANDs", () => {
+    expect(
+      makeWhereTbl({
+        NOT: [{ col: "one" }, { col: "two" }],
+      })
+    ).toEqualSQL(SQL`NOT ( ${col} = ${"one"} ) AND NOT ( ${col} = ${"two"} )`);
+  });
+
+  it("handles complex queries", () => {
+    expect(
+      makeWhereTbl({
+        OR: [{ col: { gt: "a" } }, { col: null }],
+        NOT: { col: "excluded" },
+      })
+    ).toEqualSQL(
+      SQL`( ${col} > ${"a"} OR ${col} IS NULL ) AND NOT ( ${col} = ${"excluded"} )`
+    );
   });
 });

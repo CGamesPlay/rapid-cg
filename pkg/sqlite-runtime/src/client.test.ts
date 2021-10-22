@@ -6,8 +6,11 @@ import {
   ClientType,
   makeCreateClient,
   makeInsert,
+  makeUpdate,
   GenericClient,
 } from "./client.js";
+
+import "./testUtils.js";
 
 describe("makeCreateClient", () => {
   it("works", () => {
@@ -34,8 +37,9 @@ describe("makeInsert", () => {
       { str: "value 1", num: 1 },
       { num: 2, str: SQL`NOW()` },
     ]);
-    const expected = SQL`INSERT INTO "tbl" ( "str", "num" ) VALUES ( ${"value 1"}, ${1} ), ( NOW(), ${2} )`;
-    expect(actual).toEqual(expected);
+    expect(actual).toEqualSQL(
+      SQL`INSERT INTO "tbl" ( "str", "num" ) VALUES ( ${"value 1"}, ${1} ), ( NOW(), ${2} )`
+    );
   });
 
   it("requires some data", () => {
@@ -61,5 +65,23 @@ describe("makeInsert", () => {
         { one: "one", three: "three" },
       ])
     ).toThrow("columns must be identical in all values");
+  });
+});
+
+describe("makeUpdate", () => {
+  it("creates expected SQL", () => {
+    const actual = makeUpdate("tbl", {
+      str: "value 1",
+      num: 1,
+      time: SQL`NOW()`,
+    });
+    const expected = SQL`UPDATE `;
+    expect(actual).toEqualSQL(
+      SQL`UPDATE "tbl" SET "str" = ${"value 1"}, "num" = ${1}, "time" = NOW()`
+    );
+  });
+
+  it("requires some data", () => {
+    expect(() => makeUpdate("tbl", {})).toThrow("no values");
   });
 });

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src/",
+    "outDir": "dist/"
+  },
+  "references": [
+    { "path": "../../pkg/core" },
+    { "path": "../../pkg/sqlite-runtime" }
+  ],
+  "include": [
+    "src/**/*.ts"
+  ]
+}

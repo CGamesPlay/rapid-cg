@@ -2,23 +2,20 @@ import { Database } from "./driver.js";
 import SQL from "./tag.js";
 
 export type ClientType<
-  Clients extends Record<string, new ($db: Database, $table: string) => unknown>
+  Clients extends Record<string, new ($db: Database) => unknown>
 > = { $db: Database } & {
   [name in keyof Clients]: InstanceType<Clients[name]>;
 };
 
 export function makeCreateClient<
-  Clients extends Record<
-    string,
-    new ($db: Database, $table: string) => unknown
-  >,
+  Clients extends Record<string, new ($db: Database) => unknown>,
   MainClient = ClientType<Clients>
 >(ctors: Clients) {
   return (filename: string, options?: Database.Options) => {
     const $db = new Database(filename, options);
     const client: any = { $db };
     for (let name in ctors) {
-      client[name] = new ctors[name]($db, name);
+      client[name] = new ctors[name]($db);
     }
     return client as MainClient;
   };
@@ -48,6 +45,18 @@ export function makeInsert(
   )} ) VALUES ${SQL.join(rowFragments, ", ")}`;
 }
 
+export function makeUpdate(
+  table: string,
+  values: Record<string, SQL.RawValue>
+): SQL.Template {
+  const exprs: SQL.Template[] = [];
+  for (let key in values) {
+    exprs.push(SQL`${SQL.id(key)} = ${values[key]}`);
+  }
+  if (exprs.length === 0) throw new Error("no values");
+  return SQL`UPDATE ${SQL.id(table)} SET ${SQL.join(exprs, ", ")}`;
+}
+
 export class GenericClient {
-  constructor(protected $db: Database, protected $table: string) {}
+  constructor(protected $db: Database) {}
 }
