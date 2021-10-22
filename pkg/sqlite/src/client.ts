@@ -7,10 +7,15 @@ export type ClientType<
   [name in keyof Clients]: InstanceType<Clients[name]>;
 };
 
+export type CreateClient<Client> = (
+  filename: string,
+  options?: Database.Options
+) => Client;
+
 export function makeCreateClient<
   Clients extends Record<string, new ($db: Database) => unknown>,
   MainClient = ClientType<Clients>
->(ctors: Clients) {
+>(ctors: Clients): CreateClient<MainClient> {
   return (filename: string, options?: Database.Options) => {
     const $db = new Database(filename, options);
     const client: any = { $db };

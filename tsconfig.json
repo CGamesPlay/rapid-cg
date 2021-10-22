@@ -102,6 +102,7 @@
   "files": [],
   "references": [
     { "path": "pkg/core" },
+    { "path": "pkg/sqlite-generator" },
     { "path": "pkg/sqlite" },
     { "path": "tests/sqlite" },
   ],

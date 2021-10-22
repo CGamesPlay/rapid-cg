@@ -2,6 +2,7 @@ import * as Runtime from "@rad/sqlite";
 import { SQL } from "@rad/sqlite";
 
 export type tbl = {
+  rowid: number | bigint;
   col: string;
 };
 
@@ -49,7 +50,7 @@ const tblFormatWhere = Runtime.makeWhereChainable((clause: tblWhere) => {
 
 export class tblClient extends Runtime.GenericClient {
   findFirst(args?: tblFindArgs): tbl | undefined {
-    const columns = SQL.join([SQL.id("col")], ", ");
+    const columns = SQL.join([SQL.id("rowid"), SQL.id("col")], ", ");
     const where = tblFormatWhere(args?.where);
     return this.$db.get(
       SQL`SELECT ${columns} FROM ${SQL.id("tbl")} WHERE ${where} LIMIT 1`
@@ -57,7 +58,7 @@ export class tblClient extends Runtime.GenericClient {
   }
 
   findMany(args?: tblFindArgs): tbl[] {
-    const columns = SQL.join([SQL.id("col")], ", ");
+    const columns = SQL.join([SQL.id("rowid"), SQL.id("col")], ", ");
     const where = tblFormatWhere(args?.where);
     return this.$db.all(
       SQL`SELECT ${columns} FROM ${SQL.id("tbl")} WHERE ${where}`
@@ -82,18 +83,22 @@ export class tblClient extends Runtime.GenericClient {
     );
   }
 
-  deleteMany(args: tblDeleteManyArgs): Runtime.Database.RunResult {
-    const where = tblFormatWhere(args.where);
+  deleteMany(args?: tblDeleteManyArgs): Runtime.Database.RunResult {
+    const where = tblFormatWhere(args?.where);
     const limit =
-      args.limit !== undefined ? SQL` LIMIT ${args.limit}` : SQL.empty;
+      args?.limit !== undefined ? SQL` LIMIT ${args.limit}` : SQL.empty;
     return this.$db.run(
       SQL`DELETE FROM ${SQL.id("tbl")} WHERE ${where}${limit}`
     );
   }
 }
 
-export const createClient = Runtime.makeCreateClient({
-  tbl: tblClient,
-});
+export type Client = {
+  $db: Runtime.Database;
+  tbl: tblClient;
+};
 
-export type Client = ReturnType<typeof createClient>;
+export const createClient: Runtime.CreateClient<Client> =
+  Runtime.makeCreateClient({
+    tbl: tblClient,
+  });
