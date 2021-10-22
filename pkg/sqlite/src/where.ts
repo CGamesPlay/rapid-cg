@@ -101,13 +101,11 @@ export type WhereChainable<T extends WhereChainable<T>> = {
 };
 
 export function makeWhereChainable<T extends WhereChainable<T>>(
-  makeWhereComponent: (component: T) => SQL.Template | undefined
+  makeWhereComponent: (component: T) => SQL.Template[]
 ): (where: T | undefined) => SQL.Template {
   return function makeWhereChained(where: T | undefined): SQL.Template {
     if (where === undefined) return SQL`1 = 1`;
-    const base = makeWhereComponent(where);
-    let andComponents: SQL.Template[] = [];
-    if (base !== undefined) andComponents.push(base);
+    let andComponents: SQL.Template[] = makeWhereComponent(where);
     if (where.AND !== undefined) {
       if (Array.isArray(where.AND)) {
         andComponents = andComponents.concat(where.AND.map(makeWhereChained));

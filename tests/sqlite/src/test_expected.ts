@@ -38,14 +38,13 @@ export type tblDeleteManyArgs = {
 
 const tblFormatWhere = Runtime.makeWhereChainable((clause: tblWhere) => {
   const components: SQL.Template[] = [];
-  if (clause.col !== undefined) {
-    components.push(Runtime.makeWhereString("col", clause.col));
-  }
   if (clause.rowid !== undefined) {
     components.push(Runtime.makeWhereNumber("rowid", clause.rowid));
   }
-  if (components.length > 0) return SQL.join(components, " AND ");
-  return undefined;
+  if (clause.col !== undefined) {
+    components.push(Runtime.makeWhereString("col", clause.col));
+  }
+  return components;
 });
 
 export class tblClient extends Runtime.GenericClient {

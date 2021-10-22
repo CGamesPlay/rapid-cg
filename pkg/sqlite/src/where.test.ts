@@ -78,8 +78,8 @@ type WhereTbl = {
 };
 
 const makeWhereTbl = makeWhereChainable((component: WhereTbl) => {
-  if ("col" in component) return makeWhereString("col", component.col!);
-  return undefined;
+  if ("col" in component) return [makeWhereString("col", component.col!)];
+  return [];
 });
 
 describe("makeWhereChainable", () => {

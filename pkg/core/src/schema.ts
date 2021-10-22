@@ -64,6 +64,10 @@ function date(): ColumnDateBuilder {
   return new ColumnDateBuilder({ type: "date" });
 }
 
+function integer(): ColumnAnyBuilder {
+  return new ColumnAnyBuilder({ type: "integer" });
+}
+
 function text(): ColumnAnyBuilder {
   return new ColumnAnyBuilder({ type: "text" });
 }
@@ -105,6 +109,7 @@ function database(tables: Record<string, TableBuilder>): Database {
 export const s = {
   uuid,
   date,
+  integer,
   text,
   table,
   database,
