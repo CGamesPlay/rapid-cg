@@ -1,0 +1,8 @@
+depcheck:
+  summary: run depcheck on every package
+  command: |
+    for pkg in pkg/* tests/*; do (
+            echo "Checking $pkg"
+            cd "$pkg"
+            npx depcheck --ignore-patterns=dist
+    ); done

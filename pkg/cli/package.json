@@ -1,6 +1,6 @@
 {
   "name": "@rad/cli",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@rad/schema": "0.5.0",
     "commander": "^8.3.0",
     "ts-node": "^10.4.0"
   },

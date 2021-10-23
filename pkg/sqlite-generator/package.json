@@ -1,15 +1,17 @@
 {
   "name": "@rad/sqlite-generator",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "dependencies": {
+    "@rad/sqlite": "0.5.0",
     "commander": "^8.3.0",
     "mkdirp": "^1.0.4",
     "prettier": "^2.4.1"
   },
   "devDependencies": {
+    "@rad/schema": "0.5.0",
     "@types/mkdirp": "^1.0.2"
   }
 }
