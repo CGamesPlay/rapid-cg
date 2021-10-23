@@ -9,11 +9,22 @@ describe("generateMigration", () => {
       to: s.database({
         tbl: s.table({
           id: s.integer().autoincrement(),
-          uuid: s.uuid().unique().autogenerate(),
-          createdAt: s.date().createdAt(),
-          updatedAt: s.date().updatedAt(),
-          n: s.integer().nullable(),
-          label: s.text(),
+        }),
+      }),
+    });
+    expect(src).toMatchSnapshot();
+  });
+
+  it("supports all column types", () => {
+    const src = generateMigration({
+      from: s.database({}),
+      to: s.database({
+        tbl: s.table({
+          text: s.text(),
+          integer: s.integer(),
+          date: s.date(),
+          uuid: s.uuid(),
+          json: s.json(),
         }),
       }),
     });

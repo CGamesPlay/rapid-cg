@@ -3,21 +3,26 @@ export type ColumnAny = {
   unique?: boolean;
   nullable?: boolean;
 };
-export type ColumnText = ColumnAny & {
-  type: "text";
+export type ColumnDate = ColumnAny & {
+  type: "date";
+  mode?: "createdAt" | "updatedAt";
   primary?: boolean;
-  default?: string;
+  default?: Date;
 };
 export type ColumnInteger = ColumnAny & {
   type: "integer";
   primary?: boolean | "autoincrement";
   default?: number | bigint;
 };
-export type ColumnDate = ColumnAny & {
-  type: "date";
-  mode?: "createdAt" | "updatedAt";
+export type ColumnJson = ColumnAny & {
+  type: "json";
   primary?: boolean;
-  default?: Date;
+  default?: unknown;
+};
+export type ColumnText = ColumnAny & {
+  type: "text";
+  primary?: boolean;
+  default?: string;
 };
 export type ColumnUuid = ColumnAny & {
   type: "uuid";
@@ -25,7 +30,12 @@ export type ColumnUuid = ColumnAny & {
   primary?: boolean;
   default?: string;
 };
-export type Column = ColumnText | ColumnUuid | ColumnDate | ColumnInteger;
+export type Column =
+  | ColumnDate
+  | ColumnInteger
+  | ColumnJson
+  | ColumnText
+  | ColumnUuid;
 
 export type Table = {
   name: string;
@@ -102,22 +112,6 @@ class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   }
 }
 
-function uuid(): ColumnUuidBuilder {
-  return new ColumnUuidBuilder({ type: "uuid" });
-}
-
-function date(): ColumnDateBuilder {
-  return new ColumnDateBuilder({ type: "date" });
-}
-
-function integer(): ColumnIntegerBuilder {
-  return new ColumnIntegerBuilder({ type: "integer" });
-}
-
-function text(): ColumnAnyBuilder<string> {
-  return new ColumnAnyBuilder({ type: "text" });
-}
-
 class TableBuilder {
   columns: Record<string, Column> = {};
 
@@ -136,29 +130,42 @@ class TableBuilder {
   }
 }
 
-function table(columns: Record<string, ColumnAnyBuilder<never>>): TableBuilder {
-  const result = new TableBuilder();
-  for (let name in columns) {
-    result.columns[name] = columns[name].build(name);
-  }
-  return result;
-}
-
-function database(tables: Record<string, TableBuilder>): Database {
-  const result: Database = { tables: {} as any };
-  for (let name in tables) {
-    result.tables[name] = tables[name].build(name);
-  }
-  return result;
-}
-
 export const s = {
-  uuid,
-  date,
-  integer,
-  text,
-  table,
-  database,
+  date(): ColumnDateBuilder {
+    return new ColumnDateBuilder({ type: "date" });
+  },
+
+  integer(): ColumnIntegerBuilder {
+    return new ColumnIntegerBuilder({ type: "integer" });
+  },
+
+  json(): ColumnAnyBuilder<unknown> {
+    return new ColumnAnyBuilder({ type: "json" });
+  },
+
+  text(): ColumnAnyBuilder<string> {
+    return new ColumnAnyBuilder({ type: "text" });
+  },
+
+  uuid(): ColumnUuidBuilder {
+    return new ColumnUuidBuilder({ type: "uuid" });
+  },
+
+  table(columns: Record<string, ColumnAnyBuilder<never>>): TableBuilder {
+    const result = new TableBuilder();
+    for (let name in columns) {
+      result.columns[name] = columns[name].build(name);
+    }
+    return result;
+  },
+
+  database(tables: Record<string, TableBuilder>): Database {
+    const result: Database = { tables: {} as any };
+    for (let name in tables) {
+      result.tables[name] = tables[name].build(name);
+    }
+    return result;
+  },
 };
 
 export default s;

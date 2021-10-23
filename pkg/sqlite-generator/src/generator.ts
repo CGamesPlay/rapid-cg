@@ -14,14 +14,16 @@ function lit(val: unknown): string {
 function columnType(column: Column): string {
   const orNull = column.nullable ? " | null" : "";
   switch (column.type) {
-    case "text":
-      return "string" + orNull;
-    case "integer":
-      return "number | bigint" + orNull;
-    case "uuid":
-      return "string" + orNull;
     case "date":
       return "Date" + orNull;
+    case "integer":
+      return "number | bigint" + orNull;
+    case "json":
+      return "unknown";
+    case "text":
+      return "string" + orNull;
+    case "uuid":
+      return "string" + orNull;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -30,14 +32,14 @@ function columnType(column: Column): string {
 
 function columnWhereType(column: Column): string {
   switch (column.type) {
-    case "text":
-      return "Runtime.WhereString";
-    case "integer":
-      return "Runtime.WhereNumber";
-    case "uuid":
-      return "Runtime.WhereUuid";
     case "date":
       return "Runtime.WhereDate";
+    case "integer":
+      return "Runtime.WhereNumber";
+    case "text":
+      return "Runtime.WhereString";
+    case "uuid":
+      return "Runtime.WhereUuid";
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -47,14 +49,14 @@ function columnWhereType(column: Column): string {
 function columnFormatWhere(column: Column): string {
   const args = `(${lit(column.name)}, clause.${column.name})`;
   switch (column.type) {
-    case "text":
-      return `Runtime.makeWhereString${args}`;
-    case "integer":
-      return `Runtime.makeWhereNumber${args}`;
-    case "uuid":
-      return `Runtime.makeWhereUuid${args}`;
     case "date":
       return `Runtime.makeWhereDate${args}`;
+    case "integer":
+      return `Runtime.makeWhereNumber${args}`;
+    case "text":
+      return `Runtime.makeWhereString${args}`;
+    case "uuid":
+      return `Runtime.makeWhereUuid${args}`;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -63,12 +65,14 @@ function columnFormatWhere(column: Column): string {
 
 function columnParse(column: Column): string {
   switch (column.type) {
-    case "text":
-    case "integer":
-    case "uuid":
-      return `row.${column.name} as ${columnType(column)}`;
     case "date":
       return `new Date(row.${column.name} as string)`;
+    case "integer":
+    case "text":
+    case "uuid":
+      return `row.${column.name} as ${columnType(column)}`;
+    case "json":
+      return `JSON.parse(row.${column.name} as string)`;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -77,12 +81,14 @@ function columnParse(column: Column): string {
 
 function columnSerialize(column: Column): string {
   switch (column.type) {
-    case "text":
-    case "integer":
-    case "uuid":
-      return `obj[key]`;
     case "date":
       return `obj[key]?.toISOString()`;
+    case "integer":
+    case "text":
+    case "uuid":
+      return `obj[key]`;
+    case "json":
+      return `JSON.stringify(obj[key])`;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -163,7 +169,10 @@ function generateTableClient(schema: Table): TableInfo {
 };
 
 export type ${whereType} = {
-  ${columns.map((c) => `${c.name}?: ${columnWhereType(c)};`).join("\n")}
+  ${columns
+    .filter((c) => c.type !== "json")
+    .map((c) => `${c.name}?: ${columnWhereType(c)};`)
+    .join("\n")}
   AND?: ${whereType};
   OR?: ${whereType};
   NOT?: ${whereType};
@@ -195,6 +204,7 @@ export type ${deleteManyArgsType} = {
 const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => {
   const components: SQL.Template[] = [];
   ${columns
+    .filter((c) => c.type !== "json")
     .map((c) => {
       return `if (clause.${c.name} !== undefined) {
       components.push(${columnFormatWhere(c)});

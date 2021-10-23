@@ -4,12 +4,7 @@ exports[`generateMigration adds a column 1`] = `"ALTER TABLE \\"tbl\\" ADD COLUM
 
 exports[`generateMigration adds a table 1`] = `
 "CREATE TABLE \\"tbl\\" (
-  \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  \\"uuid\\" TEXT UNIQUE NOT NULL,
-  \\"createdAt\\" TEXT NOT NULL,
-  \\"updatedAt\\" TEXT NOT NULL,
-  \\"n\\" INTEGER,
-  \\"label\\" TEXT NOT NULL
+  \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
 );"
 `;
 
@@ -30,3 +25,13 @@ COMMIT TRANSACTION;"
 exports[`generateMigration drops a column 1`] = `"ALTER TABLE \\"tbl\\" DROP COLUMN \\"extra\\";"`;
 
 exports[`generateMigration drops a table 1`] = `"DROP TABLE \\"tbl\\";"`;
+
+exports[`generateMigration supports all column types 1`] = `
+"CREATE TABLE \\"tbl\\" (
+  \\"text\\" TEXT NOT NULL,
+  \\"integer\\" INTEGER NOT NULL,
+  \\"date\\" TEXT NOT NULL,
+  \\"uuid\\" TEXT NOT NULL,
+  \\"json\\" TEXT NOT NULL
+);"
+`;

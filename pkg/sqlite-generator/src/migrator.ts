@@ -6,9 +6,10 @@ function id(val: string) {
 
 function columnType(column: Column): string {
   switch (column.type) {
+    case "date":
+    case "json":
     case "text":
     case "uuid":
-    case "date":
       return "TEXT";
     case "integer":
       return "INTEGER";

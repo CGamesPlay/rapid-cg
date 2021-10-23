@@ -96,13 +96,14 @@ describe("generated client", () => {
   describe("updateMany", () => {
     it("updates the items", () => {
       const obj = client.docs.updateMany({
-        data: { content: "updated content" },
+        data: { content: "updated content", extra: { author: "me" } },
         where: { content: "first doc" },
       });
       expect(obj.changes).toEqual(1);
       const refreshed = client.docs.findFirst()!;
       expect(refreshed.createdAt).toEqual(testStarted);
       expect(refreshed.updatedAt).not.toEqual(testStarted);
+      expect(refreshed.extra).toEqual({ author: "me" });
     });
 
     it("respects limits", () => {

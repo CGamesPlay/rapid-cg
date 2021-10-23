@@ -8,14 +8,31 @@ depcheck:
       npx depcheck --ignore-patterns=dist
     ); done
 
+build:
+  summary: build the application
+  command: |
+    set -ueio pipefail
+    tsc -b .
+    chmod +x pkg/cli/dist/cli.js
+
 build-tests:
   summary: run the build steps on the tests
   command: |
     set -ueio pipefail
+    robo build
     root=$(pwd)
     for case in tests/*; do (
       echo "Testing $case"
       cd $case
-      tsc -b .
       $root/pkg/cli/dist/cli.js generate
+      tsc -b .
+      rm -rf db
+      $root/pkg/cli/dist/cli.js sqlite migrate -d :memory:
     ); done
+
+test-full:
+  summary: run all tests
+  command: |
+    set -ueio pipefail
+    robo build-tests
+    jest --coverage

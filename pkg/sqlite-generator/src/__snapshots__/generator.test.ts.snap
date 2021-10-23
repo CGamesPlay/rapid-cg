@@ -1,217 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`generateClient generates datatypesSchema 1`] = `
-"import * as Runtime from \\"@rad/sqlite\\";
-import { SQL } from \\"@rad/sqlite\\";
-
-export type tbl = {
-  id: number | bigint;
-  uuid: string;
-  createdAt: Date;
-  updatedAt: Date;
-  n: number | bigint | null;
-  label: string;
-};
-
-export type tblWhere = {
-  id?: Runtime.WhereNumber;
-  uuid?: Runtime.WhereUuid;
-  createdAt?: Runtime.WhereDate;
-  updatedAt?: Runtime.WhereDate;
-  n?: Runtime.WhereNumber;
-  label?: Runtime.WhereString;
-  AND?: tblWhere;
-  OR?: tblWhere;
-  NOT?: tblWhere;
-};
-
-export type tblFindArgs = {
-  where?: tblWhere;
-};
-
-export type tblCreateArgs = {
-  data: Partial<tbl>;
-};
-
-export type tblCreateManyArgs = {
-  data: Partial<tbl>[];
-};
-
-export type tblUpdateManyArgs = {
-  data: Partial<tbl>;
-  where?: tblWhere;
-  limit?: number;
-};
-
-export type tblDeleteManyArgs = {
-  where?: tblWhere;
-  limit?: number;
-};
-
-const tblFormatWhere = Runtime.makeWhereChainable((clause: tblWhere) => {
-  const components: SQL.Template[] = [];
-  if (clause.id !== undefined) {
-    components.push(Runtime.makeWhereNumber(\\"id\\", clause.id));
-  }
-  if (clause.uuid !== undefined) {
-    components.push(Runtime.makeWhereUuid(\\"uuid\\", clause.uuid));
-  }
-  if (clause.createdAt !== undefined) {
-    components.push(Runtime.makeWhereDate(\\"createdAt\\", clause.createdAt));
-  }
-  if (clause.updatedAt !== undefined) {
-    components.push(Runtime.makeWhereDate(\\"updatedAt\\", clause.updatedAt));
-  }
-  if (clause.n !== undefined) {
-    components.push(Runtime.makeWhereNumber(\\"n\\", clause.n));
-  }
-  if (clause.label !== undefined) {
-    components.push(Runtime.makeWhereString(\\"label\\", clause.label));
-  }
-  return components;
-});
-
-function tblParse(row: Record<string, unknown>): tbl {
-  return {
-    id: row.id as number | bigint,
-    uuid: row.uuid as string,
-    createdAt: new Date(row.createdAt as string),
-    updatedAt: new Date(row.updatedAt as string),
-    n: row.n as number | bigint | null,
-    label: row.label as string,
-  };
-}
-
-function tblSerialize(obj: Partial<tbl>): Record<string, SQL.RawValue> {
-  const result: Record<string, SQL.RawValue> = {};
-  for (let key in obj) {
-    switch (key) {
-      case \\"id\\":
-        result[key] = obj[key];
-        break;
-      case \\"uuid\\":
-        result[key] = obj[key];
-        break;
-      case \\"createdAt\\":
-        result[key] = obj[key]?.toISOString();
-        break;
-      case \\"updatedAt\\":
-        result[key] = obj[key]?.toISOString();
-        break;
-      case \\"n\\":
-        result[key] = obj[key];
-        break;
-      case \\"label\\":
-        result[key] = obj[key];
-        break;
-      /* istanbul ignore next */
-      default:
-        throw new Error(\`invalid key \${key}\`);
-    }
-  }
-  return result;
-}
-
-function tblFillCreateData(data: Partial<tbl>): Partial<tbl> {
-  return {
-    uuid: Runtime.randomUuid(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...data,
-  };
-}
-
-function tblFillUpdateData(data: Partial<tbl>): Partial<tbl> {
-  return { updatedAt: new Date(), ...data };
-}
-
-export class tblClient extends Runtime.GenericClient {
-  findFirst(args?: tblFindArgs): tbl | undefined {
-    const columns = SQL.join(
-      [
-        SQL.id(\\"id\\"),
-        SQL.id(\\"uuid\\"),
-        SQL.id(\\"createdAt\\"),
-        SQL.id(\\"updatedAt\\"),
-        SQL.id(\\"n\\"),
-        SQL.id(\\"label\\"),
-      ],
-      \\", \\"
-    );
-    const where = tblFormatWhere(args?.where);
-    const row = this.$db.get(
-      SQL\`SELECT \${columns} FROM \${SQL.id(\\"tbl\\")} WHERE \${where} LIMIT 1\`
-    );
-    if (!row) return undefined;
-    return tblParse(row);
-  }
-
-  findMany(args?: tblFindArgs): tbl[] {
-    const columns = SQL.join(
-      [
-        SQL.id(\\"id\\"),
-        SQL.id(\\"uuid\\"),
-        SQL.id(\\"createdAt\\"),
-        SQL.id(\\"updatedAt\\"),
-        SQL.id(\\"n\\"),
-        SQL.id(\\"label\\"),
-      ],
-      \\", \\"
-    );
-    const where = tblFormatWhere(args?.where);
-    return this.$db
-      .all(SQL\`SELECT \${columns} FROM \${SQL.id(\\"tbl\\")} WHERE \${where}\`)
-      .map(tblParse);
-  }
-
-  create(args: tblCreateArgs): tbl {
-    const data = tblFillCreateData(args.data);
-    const result = this.$db.run(
-      Runtime.makeInsert(\\"tbl\\", [tblSerialize(data)])
-    );
-    return this.findFirst({ where: { id: result.lastInsertRowid } })!;
-  }
-
-  createMany(args: tblCreateManyArgs): Runtime.Database.RunResult {
-    const data = args.data.map(tblFillCreateData).map(tblSerialize);
-    return this.$db.run(Runtime.makeInsert(\\"tbl\\", data));
-  }
-
-  updateMany(args: tblUpdateManyArgs): Runtime.Database.RunResult {
-    const data = tblFillUpdateData(args.data);
-    const where = tblFormatWhere(args.where);
-    const limit =
-      args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
-    return this.$db.run(
-      SQL\`\${Runtime.makeUpdate(
-        \\"tbl\\",
-        tblSerialize(data)
-      )} WHERE \${where}\${limit}\`
-    );
-  }
-
-  deleteMany(args?: tblDeleteManyArgs): Runtime.Database.RunResult {
-    const where = tblFormatWhere(args?.where);
-    const limit =
-      args?.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
-    return this.$db.run(
-      SQL\`DELETE FROM \${SQL.id(\\"tbl\\")} WHERE \${where}\${limit}\`
-    );
-  }
-}
-
-export type Client = {
-  $db: Runtime.Database;
-  tbl: tblClient;
-};
-
-export const createClient: Runtime.CreateClient<Client> =
-  Runtime.makeCreateClient({
-    tbl: tblClient,
-  });
-"
-`;
-
 exports[`generateClient generates defaultsSchema 1`] = `
 "import * as Runtime from \\"@rad/sqlite\\";
 import { SQL } from \\"@rad/sqlite\\";
@@ -222,7 +10,11 @@ export type tbl = {
   integer: number | bigint;
   bigint: number | bigint;
   date: Date;
-  uuid: string;
+  createdAt: Date;
+  updatedAt: Date;
+  uuidConst: string;
+  uuidAuto: string;
+  json: unknown;
 };
 
 export type tblWhere = {
@@ -231,7 +23,10 @@ export type tblWhere = {
   integer?: Runtime.WhereNumber;
   bigint?: Runtime.WhereNumber;
   date?: Runtime.WhereDate;
-  uuid?: Runtime.WhereUuid;
+  createdAt?: Runtime.WhereDate;
+  updatedAt?: Runtime.WhereDate;
+  uuidConst?: Runtime.WhereUuid;
+  uuidAuto?: Runtime.WhereUuid;
   AND?: tblWhere;
   OR?: tblWhere;
   NOT?: tblWhere;
@@ -277,8 +72,17 @@ const tblFormatWhere = Runtime.makeWhereChainable((clause: tblWhere) => {
   if (clause.date !== undefined) {
     components.push(Runtime.makeWhereDate(\\"date\\", clause.date));
   }
-  if (clause.uuid !== undefined) {
-    components.push(Runtime.makeWhereUuid(\\"uuid\\", clause.uuid));
+  if (clause.createdAt !== undefined) {
+    components.push(Runtime.makeWhereDate(\\"createdAt\\", clause.createdAt));
+  }
+  if (clause.updatedAt !== undefined) {
+    components.push(Runtime.makeWhereDate(\\"updatedAt\\", clause.updatedAt));
+  }
+  if (clause.uuidConst !== undefined) {
+    components.push(Runtime.makeWhereUuid(\\"uuidConst\\", clause.uuidConst));
+  }
+  if (clause.uuidAuto !== undefined) {
+    components.push(Runtime.makeWhereUuid(\\"uuidAuto\\", clause.uuidAuto));
   }
   return components;
 });
@@ -290,7 +94,11 @@ function tblParse(row: Record<string, unknown>): tbl {
     integer: row.integer as number | bigint,
     bigint: row.bigint as number | bigint,
     date: new Date(row.date as string),
-    uuid: row.uuid as string,
+    createdAt: new Date(row.createdAt as string),
+    updatedAt: new Date(row.updatedAt as string),
+    uuidConst: row.uuidConst as string,
+    uuidAuto: row.uuidAuto as string,
+    json: JSON.parse(row.json as string),
   };
 }
 
@@ -313,8 +121,20 @@ function tblSerialize(obj: Partial<tbl>): Record<string, SQL.RawValue> {
       case \\"date\\":
         result[key] = obj[key]?.toISOString();
         break;
-      case \\"uuid\\":
+      case \\"createdAt\\":
+        result[key] = obj[key]?.toISOString();
+        break;
+      case \\"updatedAt\\":
+        result[key] = obj[key]?.toISOString();
+        break;
+      case \\"uuidConst\\":
         result[key] = obj[key];
+        break;
+      case \\"uuidAuto\\":
+        result[key] = obj[key];
+        break;
+      case \\"json\\":
+        result[key] = JSON.stringify(obj[key]);
         break;
       /* istanbul ignore next */
       default:
@@ -330,13 +150,17 @@ function tblFillCreateData(data: Partial<tbl>): Partial<tbl> {
     integer: 100,
     bigint: 18014398509481984n,
     date: new Date(\\"2020-01-01T10:00:00.000Z\\"),
-    uuid: \\"d09cf49b-8419-496c-850c-9437a94338d3\\",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    uuidConst: \\"d09cf49b-8419-496c-850c-9437a94338d3\\",
+    uuidAuto: Runtime.randomUuid(),
+    json: { impressive: true },
     ...data,
   };
 }
 
 function tblFillUpdateData(data: Partial<tbl>): Partial<tbl> {
-  return data;
+  return { updatedAt: new Date(), ...data };
 }
 
 export class tblClient extends Runtime.GenericClient {
@@ -348,7 +172,11 @@ export class tblClient extends Runtime.GenericClient {
         SQL.id(\\"integer\\"),
         SQL.id(\\"bigint\\"),
         SQL.id(\\"date\\"),
-        SQL.id(\\"uuid\\"),
+        SQL.id(\\"createdAt\\"),
+        SQL.id(\\"updatedAt\\"),
+        SQL.id(\\"uuidConst\\"),
+        SQL.id(\\"uuidAuto\\"),
+        SQL.id(\\"json\\"),
       ],
       \\", \\"
     );
@@ -368,7 +196,11 @@ export class tblClient extends Runtime.GenericClient {
         SQL.id(\\"integer\\"),
         SQL.id(\\"bigint\\"),
         SQL.id(\\"date\\"),
-        SQL.id(\\"uuid\\"),
+        SQL.id(\\"createdAt\\"),
+        SQL.id(\\"updatedAt\\"),
+        SQL.id(\\"uuidConst\\"),
+        SQL.id(\\"uuidAuto\\"),
+        SQL.id(\\"json\\"),
       ],
       \\", \\"
     );
