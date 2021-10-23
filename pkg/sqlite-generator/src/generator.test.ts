@@ -13,7 +13,7 @@ const testCases = {
       uuid: s.uuid().unique().autogenerate(),
       createdAt: s.date().createdAt(),
       updatedAt: s.date().updatedAt(),
-      n: s.integer().required(),
+      n: s.integer().nullable(),
       label: s.text(),
     }),
   }),

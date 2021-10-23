@@ -9,7 +9,7 @@ export type tbl = {
   uuid: string;
   createdAt: Date;
   updatedAt: Date;
-  n: number | bigint;
+  n: number | bigint | null;
   label: string;
 };
 
@@ -77,7 +77,7 @@ function tblParse(row: Record<string, unknown>): tbl {
     uuid: row.uuid as string,
     createdAt: new Date(row.createdAt as string),
     updatedAt: new Date(row.updatedAt as string),
-    n: row.n as number | bigint,
+    n: row.n as number | bigint | null,
     label: row.label as string,
   };
 }

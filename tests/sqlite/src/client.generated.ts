@@ -7,6 +7,7 @@ export type docs = {
   createdAt: Date;
   updatedAt: Date;
   content: string;
+  extra: string | null;
 };
 
 export type docsWhere = {
@@ -15,6 +16,7 @@ export type docsWhere = {
   createdAt?: Runtime.WhereDate;
   updatedAt?: Runtime.WhereDate;
   content?: Runtime.WhereString;
+  extra?: Runtime.WhereString;
   AND?: docsWhere;
   OR?: docsWhere;
   NOT?: docsWhere;
@@ -60,6 +62,9 @@ const docsFormatWhere = Runtime.makeWhereChainable((clause: docsWhere) => {
   if (clause.content !== undefined) {
     components.push(Runtime.makeWhereString("content", clause.content));
   }
+  if (clause.extra !== undefined) {
+    components.push(Runtime.makeWhereString("extra", clause.extra));
+  }
   return components;
 });
 
@@ -70,6 +75,7 @@ function docsParse(row: Record<string, unknown>): docs {
     createdAt: new Date(row.createdAt as string),
     updatedAt: new Date(row.updatedAt as string),
     content: row.content as string,
+    extra: row.extra as string | null,
   };
 }
 
@@ -90,6 +96,9 @@ function docsSerialize(obj: Partial<docs>): Record<string, SQL.RawValue> {
         result[key] = obj[key]?.toISOString();
         break;
       case "content":
+        result[key] = obj[key];
+        break;
+      case "extra":
         result[key] = obj[key];
         break;
       /* istanbul ignore next */
@@ -122,6 +131,7 @@ export class docsClient extends Runtime.GenericClient {
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
         SQL.id("content"),
+        SQL.id("extra"),
       ],
       ", "
     );
@@ -141,6 +151,7 @@ export class docsClient extends Runtime.GenericClient {
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
         SQL.id("content"),
+        SQL.id("extra"),
       ],
       ", "
     );

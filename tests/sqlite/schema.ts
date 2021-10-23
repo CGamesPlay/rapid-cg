@@ -8,6 +8,7 @@ const database = s.database({
     createdAt: s.date().createdAt(),
     updatedAt: s.date().updatedAt(),
     content: s.text(),
+    extra: s.text().nullable(),
   }),
 });
 

@@ -1,20 +1,24 @@
 export type ColumnAny = {
   name: string;
-  primary?: boolean | "autoincrement";
   unique?: boolean;
-  required?: boolean;
+  nullable?: boolean;
 };
-export type ColumnText = ColumnAny & { type: "text" };
-export type ColumnInteger = ColumnAny & { type: "integer" };
+export type ColumnText = ColumnAny & { type: "text"; primary?: boolean };
+export type ColumnInteger = ColumnAny & {
+  type: "integer";
+  primary?: boolean | "autoincrement";
+};
 export type ColumnDate = ColumnAny & {
   type: "date";
   mode?: "createdAt" | "updatedAt";
+  primary?: boolean;
 };
 export type ColumnUuid = ColumnAny & {
   type: "uuid";
   autogenerate?: boolean;
+  primary?: boolean;
 };
-export type Column = ColumnText | ColumnInteger | ColumnUuid | ColumnDate;
+export type Column = ColumnText | ColumnUuid | ColumnDate | ColumnInteger;
 
 export type Table = {
   name: string;
@@ -40,6 +44,7 @@ class ColumnAnyBuilder {
   }
 
   build(name: string): Column {
+    // @ts-ignore - the union type is confused by this assignment
     return Object.assign({}, this.result, { name });
   }
 
@@ -58,8 +63,8 @@ class ColumnAnyBuilder {
     return this.withProperties({ unique });
   }
 
-  required(required = true): this {
-    return this.withProperties({ required });
+  nullable(nullable = true): this {
+    return this.withProperties({ nullable });
   }
 }
 

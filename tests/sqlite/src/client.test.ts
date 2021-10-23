@@ -9,10 +9,10 @@ describe("generated client", () => {
   beforeAll(() => {
     client = createClient(":memory:");
     client.$db.run(
-      SQL`CREATE TABLE docs ( id TEXT PRIMARY KEY, createdAt TEXT, updatedAt TEXT, content TEXT )`
+      SQL`CREATE TABLE docs ( id TEXT PRIMARY KEY, createdAt TEXT, updatedAt TEXT, content TEXT, extra TEXT )`
     );
     client.$db.run(
-      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc' )`
+      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc', NULL )`
     );
   });
 
@@ -33,6 +33,7 @@ describe("generated client", () => {
         createdAt: testStarted,
         updatedAt: testStarted,
         content: "first doc",
+        extra: null,
       });
       const foundAgain = client.docs.findFirst({ where: obj });
       expect(foundAgain).toEqual(obj);
@@ -53,6 +54,7 @@ describe("generated client", () => {
           createdAt: testStarted,
           updatedAt: testStarted,
           content: "first doc",
+          extra: null,
         },
       ]);
     });
@@ -61,7 +63,7 @@ describe("generated client", () => {
   describe("create", () => {
     it("adds the item", () => {
       const obj = client.docs.create({
-        data: { rowid: 10, content: "second" },
+        data: { rowid: 10, content: "second", extra: null },
       });
       expect(obj).toEqual({
         rowid: 10,
@@ -69,6 +71,7 @@ describe("generated client", () => {
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
         content: "second",
+        extra: null,
       });
       const foundAgain = client.docs.findFirst({ where: { id: obj.id } });
       expect(foundAgain).toEqual(obj);

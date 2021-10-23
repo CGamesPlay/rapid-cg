@@ -6,15 +6,16 @@ function lit(val: any): string {
 }
 
 function columnType(column: Column): string {
+  const orNull = column.nullable ? " | null" : "";
   switch (column.type) {
     case "text":
-      return "string";
+      return "string" + orNull;
     case "integer":
-      return "number | bigint";
+      return "number | bigint" + orNull;
     case "uuid":
-      return "string";
+      return "string" + orNull;
     case "date":
-      return "Date";
+      return "Date" + orNull;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
