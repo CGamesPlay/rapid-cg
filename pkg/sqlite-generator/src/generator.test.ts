@@ -1,4 +1,4 @@
-import { s, Database } from "@rad/core";
+import { s, Database } from "@rad/schema";
 
 import { generateClient } from "./generator.js";
 

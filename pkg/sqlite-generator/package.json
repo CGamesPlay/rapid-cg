@@ -5,7 +5,11 @@
   "types": "dist/index.d.ts",
   "license": "MIT",
   "dependencies": {
+    "commander": "^8.3.0",
+    "mkdirp": "^1.0.4",
     "prettier": "^2.4.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/mkdirp": "^1.0.2"
+  }
 }

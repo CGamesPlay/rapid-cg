@@ -1,5 +1,5 @@
 import prettier from "prettier";
-import { s, Database, Table, Column } from "@rad/core";
+import { s, Database, Table, Column } from "@rad/schema";
 
 function lit(val: any): string {
   return JSON.stringify(val);

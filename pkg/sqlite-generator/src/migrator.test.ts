@@ -1,6 +1,6 @@
-import { s, Database } from "@rad/core";
+import { s, Database } from "@rad/schema";
 
-import { generateMigration } from "./generator.js";
+import { generateMigration } from "./migrator.js";
 
 describe("generateMigration", () => {
   it("adds a table", () => {

@@ -1,8 +1,8 @@
-import { s } from "@rad/core";
+import { s } from "@rad/schema";
 import { Database, SQL } from "@rad/sqlite";
 
 import { introspectDatabase } from "./introspector.js";
-import { generateMigration } from "./generator.js";
+import { generateMigration } from "./migrator.js";
 
 describe("introspectDatabase", () => {
   let db: Database;

@@ -1,5 +1,5 @@
 import * as path from "path";
-import { s, Config } from "@rad/core";
+import { s, Config } from "@rad/schema";
 import sqliteGenerator from "@rad/sqlite-generator";
 
 const database = s.database({
@@ -16,7 +16,8 @@ const config: Config = {
   database,
   generators: [
     sqliteGenerator({
-      output: path.join(__dirname, "src/client.generated.ts"),
+      clientFilename: path.join(__dirname, "src/client.generated.ts"),
+      migrationsPath: path.join(__dirname, "db/migrations"),
     }),
   ],
 };

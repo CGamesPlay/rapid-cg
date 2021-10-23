@@ -1,4 +1,4 @@
-import { s, Database, Table, Column } from "@rad/core";
+import { s, Database, Table, Column } from "@rad/schema";
 
 function id(val: string) {
   return `"${val.replace(/"/g, '""')}"`;
