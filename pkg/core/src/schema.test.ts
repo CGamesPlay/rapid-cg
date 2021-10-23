@@ -5,7 +5,7 @@ describe("Database", () => {
     expect(() =>
       s.database({
         todos: s.table({
-          id: s.uuid().primary(),
+          id: s.uuid().primary().autogenerate(),
           createdAt: s.date().createdAt(),
           updatedAt: s.date().updatedAt(),
           text: s.text(),

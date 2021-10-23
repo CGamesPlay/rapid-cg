@@ -5,19 +5,19 @@ function lit(val: any): string {
   return JSON.stringify(val);
 }
 
-function property(obj: string, member: string): string {
-  if (/^\w+$/.test(member)) return `${obj}.${member}`;
-  return `${obj}[${lit(member)}]`;
-}
-
 function columnType(column: Column): string {
   switch (column.type) {
     case "text":
       return "string";
     case "integer":
       return "number | bigint";
+    case "uuid":
+      return "string";
+    case "date":
+      return "Date";
+    /* istanbul ignore next */
     default:
-      throw new Error(`Unsupported column type ${column.type}`);
+      throw new Error(`Unsupported column type ${(column as any).type}`);
   }
 }
 
@@ -27,26 +27,98 @@ function columnWhereType(column: Column): string {
       return "Runtime.WhereString";
     case "integer":
       return "Runtime.WhereNumber";
+    case "uuid":
+      return "Runtime.WhereUuid";
+    case "date":
+      return "Runtime.WhereDate";
+    /* istanbul ignore next */
     default:
-      throw new Error(`Unsupported column type ${column.type}`);
+      throw new Error(`Unsupported column type ${(column as any).type}`);
   }
 }
 
 function columnFormatWhere(column: Column): string {
+  const args = `(${lit(column.name)}, clause.${column.name})`;
   switch (column.type) {
     case "text":
-      return `Runtime.makeWhereString(${lit(column.name)}, ${property(
-        "clause",
-        column.name
-      )})`;
+      return `Runtime.makeWhereString${args}`;
     case "integer":
-      return `Runtime.makeWhereNumber(${lit(column.name)}, ${property(
-        "clause",
-        column.name
-      )})`;
+      return `Runtime.makeWhereNumber${args}`;
+    case "uuid":
+      return `Runtime.makeWhereUuid${args}`;
+    case "date":
+      return `Runtime.makeWhereDate${args}`;
+    /* istanbul ignore next */
     default:
-      throw new Error(`Unsupported column type ${column.type}`);
+      throw new Error(`Unsupported column type ${(column as any).type}`);
   }
+}
+
+function columnParse(column: Column): string {
+  switch (column.type) {
+    case "text":
+    case "integer":
+    case "uuid":
+      return `row.${column.name} as ${columnType(column)}`;
+    case "date":
+      return `new Date(row.${column.name} as string)`;
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported column type ${(column as any).type}`);
+  }
+}
+
+function columnSerialize(column: Column): string {
+  switch (column.type) {
+    case "text":
+    case "integer":
+    case "uuid":
+      return `obj[key]`;
+    case "date":
+      return `obj[key]?.toISOString()`;
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported column type ${(column as any).type}`);
+  }
+}
+
+function fillCreateData(
+  name: string,
+  tableType: string,
+  columns: Column[]
+): string {
+  const ops: string[] = [];
+  columns.forEach((c) => {
+    if (
+      c.type === "date" &&
+      (c.mode === "createdAt" || c.mode === "updatedAt")
+    ) {
+      ops.push(`${c.name}: new Date()`);
+    } else if (c.type === "uuid" && c.autogenerate) {
+      ops.push(`${c.name}: Runtime.randomUuid()`);
+    }
+  });
+  const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
+  return `function ${name}(data: Partial<${tableType}>) {
+    return ${expr};
+}`;
+}
+
+function fillUpdateData(
+  name: string,
+  tableType: string,
+  columns: Column[]
+): string {
+  const ops: string[] = [];
+  columns.forEach((c) => {
+    if (c.type === "date" && c.mode === "updatedAt") {
+      ops.push(`${c.name}: new Date()`);
+    }
+  });
+  const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
+  return `function ${name}(data: Partial<${tableType}>) {
+    return ${expr};
+}`;
 }
 
 type TableInfo = {
@@ -64,14 +136,25 @@ function generateTableClient(schema: Table): TableInfo {
   const createManyArgsType = `${schema.name}CreateManyArgs`;
   const updateManyArgsType = `${schema.name}UpdateManyArgs`;
   const deleteManyArgsType = `${schema.name}DeleteManyArgs`;
+  const formatWhereFunc = `${schema.name}FormatWhere`;
+  const parseFunc = `${schema.name}Parse`;
+  const serializeFunc = `${schema.name}Serialize`;
+  const fillCreateDataFunc = `${schema.name}FillCreateData`;
+  const fillUpdateDataFunc = `${schema.name}FillUpdateData`;
   const columns = Object.values(schema.columns);
-  columns.unshift(s.integer().primary().build("rowid"));
+  let rowid = columns.find(
+    (c) => c.type === "integer" && c.primary === "autoincrement"
+  );
+  if (!rowid) {
+    rowid = s.integer().primary().build("rowid");
+    columns.unshift(rowid);
+  }
   const source = `export type ${tableType} = {
-  ${columns.map((c) => `${lit(c.name)}: ${columnType(c)};`).join("\n")}
+  ${columns.map((c) => `${c.name}: ${columnType(c)};`).join("\n")}
 };
 
 export type ${whereType} = {
-  ${columns.map((c) => `${lit(c.name)}?: ${columnWhereType(c)};`).join("\n")}
+  ${columns.map((c) => `${c.name}?: ${columnWhereType(c)};`).join("\n")}
   AND?: ${whereType};
   OR?: ${whereType};
   NOT?: ${whereType};
@@ -100,11 +183,11 @@ export type ${deleteManyArgsType} = {
   limit?: number;
 };
 
-const tblFormatWhere = Runtime.makeWhereChainable((clause: ${whereType}) => {
+const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => {
   const components: SQL.Template[] = [];
   ${columns
     .map((c) => {
-      return `if (${property("clause", c.name)} !== undefined) {
+      return `if (clause.${c.name} !== undefined) {
       components.push(${columnFormatWhere(c)});
     }`;
     })
@@ -112,47 +195,81 @@ const tblFormatWhere = Runtime.makeWhereChainable((clause: ${whereType}) => {
   return components;
 });
 
-export class tblClient extends Runtime.GenericClient {
+function ${parseFunc}(row: Record<string, unknown>): ${tableType} {
+  return {
+  ${columns.map((c) => `${c.name}: ${columnParse(c)},`).join("\n")}
+  };
+}
+
+function ${serializeFunc}(obj: Partial<${tableType}>): Record<string, SQL.RawValue> {
+  const result: Record<string, SQL.RawValue> = {};
+  for (let key in obj) {
+    switch (key) {
+      ${columns
+        .map(
+          (c) =>
+            `case ${lit(c.name)}: result[key] = ${columnSerialize(c)}; break;`
+        )
+        .join("\n")}
+        /* istanbul ignore next */
+      default: throw new Error(\`invalid key \${key}\`);
+    }
+  }
+  return result;
+}
+
+${fillCreateData(fillCreateDataFunc, tableType, columns)}
+
+${fillUpdateData(fillUpdateDataFunc, tableType, columns)}
+
+export class ${clientType} extends Runtime.GenericClient {
   findFirst(args?: ${findArgsType}): ${tableType} | undefined {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
-    const where = tblFormatWhere(args?.where);
-    return this.$db.get(
+    const where = ${formatWhereFunc}(args?.where);
+    const row = this.$db.get(
       SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT 1\`
     );
+    if (!row) return undefined;
+    return ${parseFunc}(row);
   }
 
   findMany(args?: ${findArgsType}): ${tableType}[] {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
-    const where = tblFormatWhere(args?.where);
+    const where = ${formatWhereFunc}(args?.where);
     return this.$db.all(
       SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where}\`
-    );
+    ).map(${parseFunc});
   }
 
   create(args: ${createArgsType}): ${tableType} {
-    const result = this.$db.run(Runtime.makeInsert("${tableType}", [args.data]));
-    return this.findFirst({ where: { rowid: result.lastInsertRowid } })!;
+    const data = ${fillCreateDataFunc}(args.data);
+    const result = this.$db.run(Runtime.makeInsert("${tableType}", [${serializeFunc}(data)]));
+    return this.findFirst({ where: { ${
+      rowid.name
+    }: result.lastInsertRowid } })!;
   }
 
   createMany(args: ${createManyArgsType}): Runtime.Database.RunResult {
-    return this.$db.run(Runtime.makeInsert("${tableType}", args.data));
+    const data = args.data.map(${fillCreateDataFunc}).map(${serializeFunc});
+    return this.$db.run(Runtime.makeInsert("${tableType}", data));
   }
 
   updateMany(args: ${updateManyArgsType}): Runtime.Database.RunResult {
-    const where = tblFormatWhere(args.where);
+    const data = ${fillUpdateDataFunc}(args.data);
+    const where = ${formatWhereFunc}(args.where);
     const limit =
       args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
     return this.$db.run(
-      SQL\`\${Runtime.makeUpdate("${tableType}", args.data)} WHERE \${where}\${limit}\`
+      SQL\`\${Runtime.makeUpdate("${tableType}", ${serializeFunc}(data))} WHERE \${where}\${limit}\`
     );
   }
 
   deleteMany(args?: ${deleteManyArgsType}): Runtime.Database.RunResult {
-    const where = tblFormatWhere(args?.where);
+    const where = ${formatWhereFunc}(args?.where);
     const limit =
       args?.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
     return this.$db.run(

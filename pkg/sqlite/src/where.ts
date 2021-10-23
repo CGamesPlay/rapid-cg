@@ -1,6 +1,6 @@
 import SQL from "./tag.js";
 
-type WhereScalar<T extends string | number | bigint> = {
+type WhereScalar<T> = {
   equals?: T | null;
   not?: T | null;
   gt?: T;
@@ -21,36 +21,49 @@ const comparisonOps = {
 function makeWhereScalar<T extends string | number | bigint>(
   column: string,
   where: WhereScalar<T>
+): SQL.Template[];
+function makeWhereScalar<T>(
+  column: string,
+  where: WhereScalar<T>,
+  convert: (val: T) => string | number | bigint | SQL.Template
+): SQL.Template[];
+function makeWhereScalar<T>(
+  column: string,
+  where: WhereScalar<T>,
+  convert?: (val: T) => string | number | bigint | SQL.Template
 ): SQL.Template[] {
   const parts: SQL.Template[] = [];
+  const C = convert ?? (((x: any) => x) as any);
   if (where.equals !== undefined) {
     if (where.equals === null) {
       parts.push(SQL`${SQL.id(column)} IS NULL`);
     } else {
-      parts.push(SQL`${SQL.id(column)} = ${where.equals}`);
+      parts.push(SQL`${SQL.id(column)} = ${C(where.equals)}`);
     }
   }
   if (where.not !== undefined) {
     if (where.not === null) {
       parts.push(SQL`${SQL.id(column)} IS NOT NULL`);
     } else {
-      parts.push(SQL`${SQL.id(column)} != ${where.not}`);
+      parts.push(SQL`${SQL.id(column)} != ${C(where.not)}`);
     }
   }
   let key: keyof typeof comparisonOps;
   for (key in comparisonOps) {
     if (key in where) {
       parts.push(
-        SQL`${SQL.id(column)} ${SQL.raw(comparisonOps[key])} ${where[key]}`
+        SQL`${SQL.id(column)} ${SQL.raw(comparisonOps[key])} ${C(where[key])}`
       );
     }
   }
   if (where.in !== undefined) {
-    parts.push(SQL`${SQL.id(column)} IN ( ${SQL.join(where.in!, ", ")} )`);
+    parts.push(
+      SQL`${SQL.id(column)} IN ( ${SQL.join(where.in!.map(C), ", ")} )`
+    );
   }
   if (where.notIn !== undefined) {
     parts.push(
-      SQL`${SQL.id(column)} NOT IN ( ${SQL.join(where.notIn!, ", ")} )`
+      SQL`${SQL.id(column)} NOT IN ( ${SQL.join(where.notIn!.map(C), ", ")} )`
     );
   }
   return parts;
@@ -87,6 +100,30 @@ export function makeWhereNumber(
     typeof where === "bigint" ||
     where === null
   ) {
+    where = { equals: where };
+  }
+  const parts: SQL.Template[] = makeWhereScalar(column, where);
+  if (parts.length === 0) return SQL`1 = 1`;
+  return SQL.join(parts, " AND ");
+}
+
+export type WhereDate = Date | null | WhereScalar<Date>;
+
+export function makeWhereDate(column: string, where: WhereDate): SQL.Template {
+  if (where instanceof Date || where === null) {
+    where = { equals: where };
+  }
+  const parts: SQL.Template[] = makeWhereScalar(column, where, (v) =>
+    v.toISOString()
+  );
+  if (parts.length === 0) return SQL`1 = 1`;
+  return SQL.join(parts, " AND ");
+}
+
+export type WhereUuid = string | null | WhereScalar<string>;
+
+export function makeWhereUuid(column: string, where: WhereUuid): SQL.Template {
+  if (typeof where === "string" || where === null) {
     where = { equals: where };
   }
   const parts: SQL.Template[] = makeWhereScalar(column, where);

@@ -1,13 +1,19 @@
-import { SQL } from "@rad/sqlite";
+import { SQL, randomUuid } from "@rad/sqlite";
 
 import { createClient, Client } from "./client.generated.js";
+
+const testStarted = new Date(2000, 0);
 
 describe("generated client", () => {
   let client: Client;
   beforeAll(() => {
     client = createClient(":memory:");
-    client.$db.run(SQL`CREATE TABLE tbl ( col TEXT )`);
-    client.$db.run(SQL`INSERT INTO tbl VALUES ( 'first' )`);
+    client.$db.run(
+      SQL`CREATE TABLE docs ( id TEXT PRIMARY KEY, createdAt TEXT, updatedAt TEXT, content TEXT )`
+    );
+    client.$db.run(
+      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc' )`
+    );
   });
 
   beforeEach(() => {
@@ -20,74 +26,100 @@ describe("generated client", () => {
 
   describe("findFirst", () => {
     it("returns results", () => {
-      const obj = client.tbl.findFirst({ where: { col: "first" } });
-      expect(obj).toEqual({ col: "first", rowid: expect.any(Number) });
+      const obj = client.docs.findFirst({ where: { content: { not: null } } });
+      expect(obj).toEqual({
+        rowid: expect.any(Number),
+        id: expect.any(String),
+        createdAt: testStarted,
+        updatedAt: testStarted,
+        content: "first doc",
+      });
+      const foundAgain = client.docs.findFirst({ where: obj });
+      expect(foundAgain).toEqual(obj);
+    });
+    it("returns undefined", () => {
+      const obj = client.docs.findFirst({ where: { content: null } });
+      expect(obj).toEqual(undefined);
     });
   });
 
   describe("findMany", () => {
     it("returns results", () => {
-      const obj = client.tbl.findMany({ where: { col: "first" } });
-      expect(obj).toEqual([{ col: "first", rowid: expect.any(Number) }]);
+      const obj = client.docs.findMany();
+      expect(obj).toEqual([
+        {
+          rowid: expect.any(Number),
+          id: expect.any(String),
+          createdAt: testStarted,
+          updatedAt: testStarted,
+          content: "first doc",
+        },
+      ]);
     });
   });
 
   describe("create", () => {
     it("adds the item", () => {
-      const obj = client.tbl.create({ data: { col: "second" } });
-      expect(obj).toEqual({ col: "second", rowid: expect.any(Number) });
-      const all = client.tbl.findMany({});
-      expect(all).toEqual([
-        { col: "first", rowid: expect.any(Number) },
-        { col: "second", rowid: expect.any(Number) },
-      ]);
+      const obj = client.docs.create({
+        data: { rowid: 10, content: "second" },
+      });
+      expect(obj).toEqual({
+        rowid: 10,
+        id: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+        content: "second",
+      });
+      const foundAgain = client.docs.findFirst({ where: { id: obj.id } });
+      expect(foundAgain).toEqual(obj);
     });
   });
 
   describe("createMany", () => {
     it("adds the items", () => {
-      const obj = client.tbl.createMany({
-        data: [{ col: "second" }, { col: "third" }],
+      const obj = client.docs.createMany({
+        data: [{ content: "second" }, { content: "third" }],
       });
       expect(obj.changes).toEqual(2);
-      const all = client.tbl.findMany({});
-      expect(all).toEqual([
-        { col: "first", rowid: expect.any(Number) },
-        { col: "second", rowid: expect.any(Number) },
-        { col: "third", rowid: expect.any(Number) },
+      const all = client.docs.findMany({});
+      expect(all).toMatchObject([
+        { content: "first doc", createdAt: expect.any(Date) },
+        { content: "second" },
+        { content: "third" },
       ]);
     });
   });
 
   describe("updateMany", () => {
     it("updates the items", () => {
-      const obj = client.tbl.updateMany({
-        data: { col: "1st" },
-        where: { col: "first" },
+      const obj = client.docs.updateMany({
+        data: { content: "updated content" },
+        where: { content: "first doc" },
       });
       expect(obj.changes).toEqual(1);
-      const all = client.tbl.findMany({});
-      expect(all).toEqual([{ col: "1st", rowid: expect.any(Number) }]);
+      const refreshed = client.docs.findFirst()!;
+      expect(refreshed.createdAt).toEqual(testStarted);
+      expect(refreshed.updatedAt).not.toEqual(testStarted);
     });
 
     it("respects limits", () => {
-      let ret = client.tbl.updateMany({ data: { col: "1st" }, limit: 0 });
+      let ret = client.docs.updateMany({ data: { content: "1st" }, limit: 0 });
       expect(ret.changes).toEqual(0);
     });
   });
 
   describe("deleteMany", () => {
     it("deletes the items", () => {
-      let ret = client.tbl.deleteMany({ where: { col: "not found" } });
+      let ret = client.docs.deleteMany({ where: { rowid: -100 } });
       expect(ret.changes).toEqual(0);
-      ret = client.tbl.deleteMany({ where: {} });
+      ret = client.docs.deleteMany({ where: {} });
       expect(ret.changes).toEqual(1);
-      const all = client.tbl.findMany({});
+      const all = client.docs.findMany({});
       expect(all).toEqual([]);
     });
 
     it("respects limits", () => {
-      let ret = client.tbl.deleteMany({ limit: 0 });
+      let ret = client.docs.deleteMany({ limit: 0 });
       expect(ret.changes).toEqual(0);
     });
   });

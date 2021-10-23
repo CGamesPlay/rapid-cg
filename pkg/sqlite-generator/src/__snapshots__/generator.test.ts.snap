@@ -1,17 +1,25 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`generateClient generates simpleSchema 1`] = `
+exports[`generateClient generates datatypesSchema 1`] = `
 "import * as Runtime from \\"@rad/sqlite\\";
 import { SQL } from \\"@rad/sqlite\\";
 
 export type tbl = {
-  rowid: number | bigint;
-  col: string;
+  id: number | bigint;
+  uuid: string;
+  createdAt: Date;
+  updatedAt: Date;
+  n: number | bigint;
+  label: string;
 };
 
 export type tblWhere = {
-  rowid?: Runtime.WhereNumber;
-  col?: Runtime.WhereString;
+  id?: Runtime.WhereNumber;
+  uuid?: Runtime.WhereUuid;
+  createdAt?: Runtime.WhereDate;
+  updatedAt?: Runtime.WhereDate;
+  n?: Runtime.WhereNumber;
+  label?: Runtime.WhereString;
   AND?: tblWhere;
   OR?: tblWhere;
   NOT?: tblWhere;
@@ -42,47 +50,143 @@ export type tblDeleteManyArgs = {
 
 const tblFormatWhere = Runtime.makeWhereChainable((clause: tblWhere) => {
   const components: SQL.Template[] = [];
-  if (clause.rowid !== undefined) {
-    components.push(Runtime.makeWhereNumber(\\"rowid\\", clause.rowid));
+  if (clause.id !== undefined) {
+    components.push(Runtime.makeWhereNumber(\\"id\\", clause.id));
   }
-  if (clause.col !== undefined) {
-    components.push(Runtime.makeWhereString(\\"col\\", clause.col));
+  if (clause.uuid !== undefined) {
+    components.push(Runtime.makeWhereUuid(\\"uuid\\", clause.uuid));
+  }
+  if (clause.createdAt !== undefined) {
+    components.push(Runtime.makeWhereDate(\\"createdAt\\", clause.createdAt));
+  }
+  if (clause.updatedAt !== undefined) {
+    components.push(Runtime.makeWhereDate(\\"updatedAt\\", clause.updatedAt));
+  }
+  if (clause.n !== undefined) {
+    components.push(Runtime.makeWhereNumber(\\"n\\", clause.n));
+  }
+  if (clause.label !== undefined) {
+    components.push(Runtime.makeWhereString(\\"label\\", clause.label));
   }
   return components;
 });
 
+function tblParse(row: Record<string, unknown>): tbl {
+  return {
+    id: row.id as number | bigint,
+    uuid: row.uuid as string,
+    createdAt: new Date(row.createdAt as string),
+    updatedAt: new Date(row.updatedAt as string),
+    n: row.n as number | bigint,
+    label: row.label as string,
+  };
+}
+
+function tblSerialize(obj: Partial<tbl>): Record<string, SQL.RawValue> {
+  const result: Record<string, SQL.RawValue> = {};
+  for (let key in obj) {
+    switch (key) {
+      case \\"id\\":
+        result[key] = obj[key];
+        break;
+      case \\"uuid\\":
+        result[key] = obj[key];
+        break;
+      case \\"createdAt\\":
+        result[key] = obj[key]?.toISOString();
+        break;
+      case \\"updatedAt\\":
+        result[key] = obj[key]?.toISOString();
+        break;
+      case \\"n\\":
+        result[key] = obj[key];
+        break;
+      case \\"label\\":
+        result[key] = obj[key];
+        break;
+      /* istanbul ignore next */
+      default:
+        throw new Error(\`invalid key \${key}\`);
+    }
+  }
+  return result;
+}
+
+function tblFillCreateData(data: Partial<tbl>) {
+  return {
+    uuid: Runtime.randomUuid(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...data,
+  };
+}
+
+function tblFillUpdateData(data: Partial<tbl>) {
+  return { updatedAt: new Date(), ...data };
+}
+
 export class tblClient extends Runtime.GenericClient {
   findFirst(args?: tblFindArgs): tbl | undefined {
-    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"col\\")], \\", \\");
+    const columns = SQL.join(
+      [
+        SQL.id(\\"id\\"),
+        SQL.id(\\"uuid\\"),
+        SQL.id(\\"createdAt\\"),
+        SQL.id(\\"updatedAt\\"),
+        SQL.id(\\"n\\"),
+        SQL.id(\\"label\\"),
+      ],
+      \\", \\"
+    );
     const where = tblFormatWhere(args?.where);
-    return this.$db.get(
+    const row = this.$db.get(
       SQL\`SELECT \${columns} FROM \${SQL.id(\\"tbl\\")} WHERE \${where} LIMIT 1\`
     );
+    if (!row) return undefined;
+    return tblParse(row);
   }
 
   findMany(args?: tblFindArgs): tbl[] {
-    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"col\\")], \\", \\");
-    const where = tblFormatWhere(args?.where);
-    return this.$db.all(
-      SQL\`SELECT \${columns} FROM \${SQL.id(\\"tbl\\")} WHERE \${where}\`
+    const columns = SQL.join(
+      [
+        SQL.id(\\"id\\"),
+        SQL.id(\\"uuid\\"),
+        SQL.id(\\"createdAt\\"),
+        SQL.id(\\"updatedAt\\"),
+        SQL.id(\\"n\\"),
+        SQL.id(\\"label\\"),
+      ],
+      \\", \\"
     );
+    const where = tblFormatWhere(args?.where);
+    return this.$db
+      .all(SQL\`SELECT \${columns} FROM \${SQL.id(\\"tbl\\")} WHERE \${where}\`)
+      .map(tblParse);
   }
 
   create(args: tblCreateArgs): tbl {
-    const result = this.$db.run(Runtime.makeInsert(\\"tbl\\", [args.data]));
-    return this.findFirst({ where: { rowid: result.lastInsertRowid } })!;
+    const data = tblFillCreateData(args.data);
+    const result = this.$db.run(
+      Runtime.makeInsert(\\"tbl\\", [tblSerialize(data)])
+    );
+    return this.findFirst({ where: { id: result.lastInsertRowid } })!;
   }
 
   createMany(args: tblCreateManyArgs): Runtime.Database.RunResult {
-    return this.$db.run(Runtime.makeInsert(\\"tbl\\", args.data));
+    const data = args.data.map(tblFillCreateData).map(tblSerialize);
+    return this.$db.run(Runtime.makeInsert(\\"tbl\\", data));
   }
 
   updateMany(args: tblUpdateManyArgs): Runtime.Database.RunResult {
+    const data = tblFillUpdateData(args.data);
     const where = tblFormatWhere(args.where);
     const limit =
       args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
     return this.$db.run(
-      SQL\`\${Runtime.makeUpdate(\\"tbl\\", args.data)} WHERE \${where}\${limit}\`
+      SQL\`\${Runtime.makeUpdate(
+        \\"tbl\\",
+        tblSerialize(data)
+      )} WHERE \${where}\${limit}\`
     );
   }
 
@@ -104,6 +208,294 @@ export type Client = {
 export const createClient: Runtime.CreateClient<Client> =
   Runtime.makeCreateClient({
     tbl: tblClient,
+  });
+"
+`;
+
+exports[`generateClient generates simpleSchema 1`] = `
+"import * as Runtime from \\"@rad/sqlite\\";
+import { SQL } from \\"@rad/sqlite\\";
+
+export type tblA = {
+  rowid: number | bigint;
+  colA: string;
+};
+
+export type tblAWhere = {
+  rowid?: Runtime.WhereNumber;
+  colA?: Runtime.WhereString;
+  AND?: tblAWhere;
+  OR?: tblAWhere;
+  NOT?: tblAWhere;
+};
+
+export type tblAFindArgs = {
+  where?: tblAWhere;
+};
+
+export type tblACreateArgs = {
+  data: Partial<tblA>;
+};
+
+export type tblACreateManyArgs = {
+  data: Partial<tblA>[];
+};
+
+export type tblAUpdateManyArgs = {
+  data: Partial<tblA>;
+  where?: tblAWhere;
+  limit?: number;
+};
+
+export type tblADeleteManyArgs = {
+  where?: tblAWhere;
+  limit?: number;
+};
+
+const tblAFormatWhere = Runtime.makeWhereChainable((clause: tblAWhere) => {
+  const components: SQL.Template[] = [];
+  if (clause.rowid !== undefined) {
+    components.push(Runtime.makeWhereNumber(\\"rowid\\", clause.rowid));
+  }
+  if (clause.colA !== undefined) {
+    components.push(Runtime.makeWhereString(\\"colA\\", clause.colA));
+  }
+  return components;
+});
+
+function tblAParse(row: Record<string, unknown>): tblA {
+  return {
+    rowid: row.rowid as number | bigint,
+    colA: row.colA as string,
+  };
+}
+
+function tblASerialize(obj: Partial<tblA>): Record<string, SQL.RawValue> {
+  const result: Record<string, SQL.RawValue> = {};
+  for (let key in obj) {
+    switch (key) {
+      case \\"rowid\\":
+        result[key] = obj[key];
+        break;
+      case \\"colA\\":
+        result[key] = obj[key];
+        break;
+      /* istanbul ignore next */
+      default:
+        throw new Error(\`invalid key \${key}\`);
+    }
+  }
+  return result;
+}
+
+function tblAFillCreateData(data: Partial<tblA>) {
+  return data;
+}
+
+function tblAFillUpdateData(data: Partial<tblA>) {
+  return data;
+}
+
+export class tblAClient extends Runtime.GenericClient {
+  findFirst(args?: tblAFindArgs): tblA | undefined {
+    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"colA\\")], \\", \\");
+    const where = tblAFormatWhere(args?.where);
+    const row = this.$db.get(
+      SQL\`SELECT \${columns} FROM \${SQL.id(\\"tblA\\")} WHERE \${where} LIMIT 1\`
+    );
+    if (!row) return undefined;
+    return tblAParse(row);
+  }
+
+  findMany(args?: tblAFindArgs): tblA[] {
+    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"colA\\")], \\", \\");
+    const where = tblAFormatWhere(args?.where);
+    return this.$db
+      .all(SQL\`SELECT \${columns} FROM \${SQL.id(\\"tblA\\")} WHERE \${where}\`)
+      .map(tblAParse);
+  }
+
+  create(args: tblACreateArgs): tblA {
+    const data = tblAFillCreateData(args.data);
+    const result = this.$db.run(
+      Runtime.makeInsert(\\"tblA\\", [tblASerialize(data)])
+    );
+    return this.findFirst({ where: { rowid: result.lastInsertRowid } })!;
+  }
+
+  createMany(args: tblACreateManyArgs): Runtime.Database.RunResult {
+    const data = args.data.map(tblAFillCreateData).map(tblASerialize);
+    return this.$db.run(Runtime.makeInsert(\\"tblA\\", data));
+  }
+
+  updateMany(args: tblAUpdateManyArgs): Runtime.Database.RunResult {
+    const data = tblAFillUpdateData(args.data);
+    const where = tblAFormatWhere(args.where);
+    const limit =
+      args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    return this.$db.run(
+      SQL\`\${Runtime.makeUpdate(
+        \\"tblA\\",
+        tblASerialize(data)
+      )} WHERE \${where}\${limit}\`
+    );
+  }
+
+  deleteMany(args?: tblADeleteManyArgs): Runtime.Database.RunResult {
+    const where = tblAFormatWhere(args?.where);
+    const limit =
+      args?.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    return this.$db.run(
+      SQL\`DELETE FROM \${SQL.id(\\"tblA\\")} WHERE \${where}\${limit}\`
+    );
+  }
+}
+
+export type tblB = {
+  rowid: number | bigint;
+  colB: string;
+};
+
+export type tblBWhere = {
+  rowid?: Runtime.WhereNumber;
+  colB?: Runtime.WhereString;
+  AND?: tblBWhere;
+  OR?: tblBWhere;
+  NOT?: tblBWhere;
+};
+
+export type tblBFindArgs = {
+  where?: tblBWhere;
+};
+
+export type tblBCreateArgs = {
+  data: Partial<tblB>;
+};
+
+export type tblBCreateManyArgs = {
+  data: Partial<tblB>[];
+};
+
+export type tblBUpdateManyArgs = {
+  data: Partial<tblB>;
+  where?: tblBWhere;
+  limit?: number;
+};
+
+export type tblBDeleteManyArgs = {
+  where?: tblBWhere;
+  limit?: number;
+};
+
+const tblBFormatWhere = Runtime.makeWhereChainable((clause: tblBWhere) => {
+  const components: SQL.Template[] = [];
+  if (clause.rowid !== undefined) {
+    components.push(Runtime.makeWhereNumber(\\"rowid\\", clause.rowid));
+  }
+  if (clause.colB !== undefined) {
+    components.push(Runtime.makeWhereString(\\"colB\\", clause.colB));
+  }
+  return components;
+});
+
+function tblBParse(row: Record<string, unknown>): tblB {
+  return {
+    rowid: row.rowid as number | bigint,
+    colB: row.colB as string,
+  };
+}
+
+function tblBSerialize(obj: Partial<tblB>): Record<string, SQL.RawValue> {
+  const result: Record<string, SQL.RawValue> = {};
+  for (let key in obj) {
+    switch (key) {
+      case \\"rowid\\":
+        result[key] = obj[key];
+        break;
+      case \\"colB\\":
+        result[key] = obj[key];
+        break;
+      /* istanbul ignore next */
+      default:
+        throw new Error(\`invalid key \${key}\`);
+    }
+  }
+  return result;
+}
+
+function tblBFillCreateData(data: Partial<tblB>) {
+  return data;
+}
+
+function tblBFillUpdateData(data: Partial<tblB>) {
+  return data;
+}
+
+export class tblBClient extends Runtime.GenericClient {
+  findFirst(args?: tblBFindArgs): tblB | undefined {
+    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"colB\\")], \\", \\");
+    const where = tblBFormatWhere(args?.where);
+    const row = this.$db.get(
+      SQL\`SELECT \${columns} FROM \${SQL.id(\\"tblB\\")} WHERE \${where} LIMIT 1\`
+    );
+    if (!row) return undefined;
+    return tblBParse(row);
+  }
+
+  findMany(args?: tblBFindArgs): tblB[] {
+    const columns = SQL.join([SQL.id(\\"rowid\\"), SQL.id(\\"colB\\")], \\", \\");
+    const where = tblBFormatWhere(args?.where);
+    return this.$db
+      .all(SQL\`SELECT \${columns} FROM \${SQL.id(\\"tblB\\")} WHERE \${where}\`)
+      .map(tblBParse);
+  }
+
+  create(args: tblBCreateArgs): tblB {
+    const data = tblBFillCreateData(args.data);
+    const result = this.$db.run(
+      Runtime.makeInsert(\\"tblB\\", [tblBSerialize(data)])
+    );
+    return this.findFirst({ where: { rowid: result.lastInsertRowid } })!;
+  }
+
+  createMany(args: tblBCreateManyArgs): Runtime.Database.RunResult {
+    const data = args.data.map(tblBFillCreateData).map(tblBSerialize);
+    return this.$db.run(Runtime.makeInsert(\\"tblB\\", data));
+  }
+
+  updateMany(args: tblBUpdateManyArgs): Runtime.Database.RunResult {
+    const data = tblBFillUpdateData(args.data);
+    const where = tblBFormatWhere(args.where);
+    const limit =
+      args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    return this.$db.run(
+      SQL\`\${Runtime.makeUpdate(
+        \\"tblB\\",
+        tblBSerialize(data)
+      )} WHERE \${where}\${limit}\`
+    );
+  }
+
+  deleteMany(args?: tblBDeleteManyArgs): Runtime.Database.RunResult {
+    const where = tblBFormatWhere(args?.where);
+    const limit =
+      args?.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    return this.$db.run(
+      SQL\`DELETE FROM \${SQL.id(\\"tblB\\")} WHERE \${where}\${limit}\`
+    );
+  }
+}
+
+export type Client = {
+  $db: Runtime.Database;
+  tblA: tblAClient;
+  tblB: tblBClient;
+};
+
+export const createClient: Runtime.CreateClient<Client> =
+  Runtime.makeCreateClient({
+    tblA: tblAClient,
+    tblB: tblBClient,
   });
 "
 `;

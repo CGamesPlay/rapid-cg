@@ -1,9 +1,20 @@
-export type ColumnAny = { name: string; type: string; primary?: boolean };
+export type ColumnAny = {
+  name: string;
+  primary?: boolean | "autoincrement";
+  unique?: boolean;
+  required?: boolean;
+};
+export type ColumnText = ColumnAny & { type: "text" };
+export type ColumnInteger = ColumnAny & { type: "integer" };
 export type ColumnDate = ColumnAny & {
   type: "date";
   mode?: "createdAt" | "updatedAt";
 };
-export type Column = ColumnAny | ColumnDate;
+export type ColumnUuid = ColumnAny & {
+  type: "uuid";
+  autogenerate?: boolean;
+};
+export type Column = ColumnText | ColumnInteger | ColumnUuid | ColumnDate;
 
 export type Table = {
   name: string;
@@ -42,6 +53,20 @@ class ColumnAnyBuilder {
   primary(primary = true): this {
     return this.withProperties({ primary });
   }
+
+  unique(unique = true): this {
+    return this.withProperties({ unique });
+  }
+
+  required(required = true): this {
+    return this.withProperties({ required });
+  }
+}
+
+class ColumnUuidBuilder extends ColumnAnyBuilder {
+  autogenerate(autogenerate = true): this {
+    return this.withProperties({ autogenerate });
+  }
 }
 
 class ColumnDateBuilder extends ColumnAnyBuilder {
@@ -56,16 +81,22 @@ class ColumnDateBuilder extends ColumnAnyBuilder {
   }
 }
 
-function uuid(): ColumnAnyBuilder {
-  return new ColumnAnyBuilder({ type: "uuid" });
+class ColumnIntegerBuilder extends ColumnAnyBuilder {
+  autoincrement(): this {
+    return this.withProperties({ primary: "autoincrement" });
+  }
+}
+
+function uuid(): ColumnUuidBuilder {
+  return new ColumnUuidBuilder({ type: "uuid" });
 }
 
 function date(): ColumnDateBuilder {
   return new ColumnDateBuilder({ type: "date" });
 }
 
-function integer(): ColumnAnyBuilder {
-  return new ColumnAnyBuilder({ type: "integer" });
+function integer(): ColumnIntegerBuilder {
+  return new ColumnIntegerBuilder({ type: "integer" });
 }
 
 function text(): ColumnAnyBuilder {

@@ -1,8 +1,12 @@
+import { v4 } from "uuid";
+
 import SQL from "./tag.js";
 import {
   WhereString,
   makeWhereString,
   makeWhereNumber,
+  makeWhereDate,
+  makeWhereUuid,
   makeWhereChainable,
 } from "./where.js";
 
@@ -67,6 +71,34 @@ describe("makeWhereNumber", () => {
   });
   it("handler empty clauses", () => {
     expect(makeWhereNumber("col", {})).toEqualSQL(SQL`1 = 1`);
+  });
+});
+
+describe("makeWhereDate", () => {
+  it("handles simple equality", () => {
+    const date = new Date();
+    expect(makeWhereDate("col", date)).toEqualSQL(
+      SQL`${col} = ${date.toISOString()}`
+    );
+  });
+  it("handles simple null", () => {
+    expect(makeWhereDate("col", null)).toEqualSQL(SQL`${col} IS NULL`);
+  });
+  it("handler empty clauses", () => {
+    expect(makeWhereDate("col", {})).toEqualSQL(SQL`1 = 1`);
+  });
+});
+
+describe("makeWhereUuid", () => {
+  it("handles simple equality", () => {
+    const uuid = v4();
+    expect(makeWhereUuid("col", uuid)).toEqualSQL(SQL`${col} = ${uuid}`);
+  });
+  it("handles simple null", () => {
+    expect(makeWhereUuid("col", null)).toEqualSQL(SQL`${col} IS NULL`);
+  });
+  it("handler empty clauses", () => {
+    expect(makeWhereUuid("col", {})).toEqualSQL(SQL`1 = 1`);
   });
 });
 
