@@ -105,6 +105,7 @@
     { "path": "pkg/core" },
     { "path": "pkg/sqlite" },
     { "path": "pkg/sqlite-generator" },
+    { "path": "pkg/sqlite-migrator" },
   ],
   "exclude": [
     "**/*.test.ts"

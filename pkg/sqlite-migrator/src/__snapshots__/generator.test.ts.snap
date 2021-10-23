@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`generateMigration adds a column 1`] = `"ALTER TABLE \\"tbl\\" ADD COLUMN \\"extra\\" TEXT NOT NULL;"`;
+
+exports[`generateMigration adds a table 1`] = `
+"CREATE TABLE \\"tbl\\" (
+  \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  \\"uuid\\" TEXT UNIQUE NOT NULL,
+  \\"createdAt\\" TEXT NOT NULL,
+  \\"updatedAt\\" TEXT NOT NULL,
+  \\"n\\" INTEGER,
+  \\"label\\" TEXT NOT NULL
+);"
+`;
+
+exports[`generateMigration changes a column 1`] = `
+"BEGIN EXCLUSIVE TRANSACTION;
+CREATE TABLE \\"transfertbl\\" (
+  \\"col\\" TEXT NOT NULL,
+  \\"extra\\" TEXT
+);
+INSERT INTO transfertbl ( \\"col\\", \\"extra\\" )
+  SELECT \\"col\\", \\"extra\\"
+  FROM \\"tbl\\";
+DROP TABLE tbl;
+ALTER TABLE transfertbl RENAME TO tbl;
+COMMIT TRANSACTION;"
+`;
+
+exports[`generateMigration drops a column 1`] = `"ALTER TABLE \\"tbl\\" DROP COLUMN \\"extra\\";"`;
+
+exports[`generateMigration drops a table 1`] = `"DROP TABLE \\"tbl\\";"`;
