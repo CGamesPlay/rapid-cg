@@ -1,8 +1,14 @@
 import prettier from "prettier";
 import { s, Database, Table, Column } from "@rad/schema";
 
-function lit(val: any): string {
-  return JSON.stringify(val);
+function lit(val: unknown): string {
+  if (typeof val === "bigint") {
+    return `${val}n`;
+  } else if (val instanceof Date) {
+    return `new Date(${JSON.stringify(val.toISOString())})`;
+  } else {
+    return JSON.stringify(val);
+  }
 }
 
 function columnType(column: Column): string {
@@ -97,10 +103,12 @@ function fillCreateData(
       ops.push(`${c.name}: new Date()`);
     } else if (c.type === "uuid" && c.autogenerate) {
       ops.push(`${c.name}: Runtime.randomUuid()`);
+    } else if (c.default !== undefined) {
+      ops.push(`${c.name}: ${lit(c.default)}`);
     }
   });
   const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
-  return `function ${name}(data: Partial<${tableType}>) {
+  return `function ${name}(data: Partial<${tableType}>): Partial<${tableType}> {
     return ${expr};
 }`;
 }
@@ -117,7 +125,7 @@ function fillUpdateData(
     }
   });
   const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
-  return `function ${name}(data: Partial<${tableType}>) {
+  return `function ${name}(data: Partial<${tableType}>): Partial<${tableType}> {
     return ${expr};
 }`;
 }

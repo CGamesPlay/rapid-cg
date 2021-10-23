@@ -3,20 +3,27 @@ export type ColumnAny = {
   unique?: boolean;
   nullable?: boolean;
 };
-export type ColumnText = ColumnAny & { type: "text"; primary?: boolean };
+export type ColumnText = ColumnAny & {
+  type: "text";
+  primary?: boolean;
+  default?: string;
+};
 export type ColumnInteger = ColumnAny & {
   type: "integer";
   primary?: boolean | "autoincrement";
+  default?: number | bigint;
 };
 export type ColumnDate = ColumnAny & {
   type: "date";
   mode?: "createdAt" | "updatedAt";
   primary?: boolean;
+  default?: Date;
 };
 export type ColumnUuid = ColumnAny & {
   type: "uuid";
   autogenerate?: boolean;
   primary?: boolean;
+  default?: string;
 };
 export type Column = ColumnText | ColumnUuid | ColumnDate | ColumnInteger;
 
@@ -35,20 +42,19 @@ function clone<T>(base: T, ...newProps: Array<any>): T {
   return ret;
 }
 
-class ColumnAnyBuilder {
+class ColumnAnyBuilder<DefaultType = never> {
   result: Omit<Column, "name">;
 
-  constructor(input: Partial<Column>) {
-    this.result = input as Omit<Column, "name">;
+  constructor(input: Omit<Column, "name">) {
+    this.result = input;
     Object.assign(this, input);
   }
 
   build(name: string): Column {
-    // @ts-ignore - the union type is confused by this assignment
-    return Object.assign({}, this.result, { name });
+    return Object.assign({} as Column, this.result, { name });
   }
 
-  protected withProperties(input: Partial<Column>): this {
+  protected withProperties(input: unknown): this {
     const ret = Object.create(Object.getPrototypeOf(this));
     ret.result = {};
     Object.assign(ret.result, this.result, input);
@@ -66,15 +72,19 @@ class ColumnAnyBuilder {
   nullable(nullable = true): this {
     return this.withProperties({ nullable });
   }
+
+  default(value: DefaultType): this {
+    return this.withProperties({ default: value });
+  }
 }
 
-class ColumnUuidBuilder extends ColumnAnyBuilder {
+class ColumnUuidBuilder extends ColumnAnyBuilder<string> {
   autogenerate(autogenerate = true): this {
     return this.withProperties({ autogenerate });
   }
 }
 
-class ColumnDateBuilder extends ColumnAnyBuilder {
+class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
   mode: undefined | "createdAt" | "updatedAt";
 
   createdAt(): this {
@@ -86,7 +96,7 @@ class ColumnDateBuilder extends ColumnAnyBuilder {
   }
 }
 
-class ColumnIntegerBuilder extends ColumnAnyBuilder {
+class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   autoincrement(): this {
     return this.withProperties({ primary: "autoincrement" });
   }
@@ -104,7 +114,7 @@ function integer(): ColumnIntegerBuilder {
   return new ColumnIntegerBuilder({ type: "integer" });
 }
 
-function text(): ColumnAnyBuilder {
+function text(): ColumnAnyBuilder<string> {
   return new ColumnAnyBuilder({ type: "text" });
 }
 
@@ -126,7 +136,7 @@ class TableBuilder {
   }
 }
 
-function table(columns: Record<string, ColumnAnyBuilder>): TableBuilder {
+function table(columns: Record<string, ColumnAnyBuilder<never>>): TableBuilder {
   const result = new TableBuilder();
   for (let name in columns) {
     result.columns[name] = columns[name].build(name);

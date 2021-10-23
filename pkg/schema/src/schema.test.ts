@@ -8,7 +8,8 @@ describe("Database", () => {
           id: s.uuid().primary().autogenerate(),
           createdAt: s.date().createdAt(),
           updatedAt: s.date().updatedAt(),
-          text: s.text(),
+          text: s.text().default("text"),
+          extra: s.text(),
         }),
       })
     ).not.toThrow();

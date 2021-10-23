@@ -17,6 +17,15 @@ const testCases = {
       label: s.text(),
     }),
   }),
+  defaultsSchema: s.database({
+    tbl: s.table({
+      text: s.text().default("a string"),
+      integer: s.integer().default(100),
+      bigint: s.integer().default(18014398509481984n),
+      date: s.date().default(new Date(2020, 0, 1)),
+      uuid: s.uuid().default("d09cf49b-8419-496c-850c-9437a94338d3"),
+    }),
+  }),
 };
 
 describe("generateClient", () => {

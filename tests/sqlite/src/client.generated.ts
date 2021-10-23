@@ -109,7 +109,7 @@ function docsSerialize(obj: Partial<docs>): Record<string, SQL.RawValue> {
   return result;
 }
 
-function docsFillCreateData(data: Partial<docs>) {
+function docsFillCreateData(data: Partial<docs>): Partial<docs> {
   return {
     id: Runtime.randomUuid(),
     createdAt: new Date(),
@@ -118,7 +118,7 @@ function docsFillCreateData(data: Partial<docs>) {
   };
 }
 
-function docsFillUpdateData(data: Partial<docs>) {
+function docsFillUpdateData(data: Partial<docs>): Partial<docs> {
   return { updatedAt: new Date(), ...data };
 }
 

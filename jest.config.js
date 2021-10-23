@@ -9,4 +9,9 @@ module.exports = {
     "**/tests/*/src/**/(*.)+(spec|test).[tj]s?(x)",
     "**/pkg/*/src/**/(*.)+(spec|test).[tj]s?(x)",
   ],
+  coverageThreshold: {
+    global: {
+      statements: 100,
+    },
+  },
 };
