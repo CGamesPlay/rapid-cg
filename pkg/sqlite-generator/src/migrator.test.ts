@@ -1,4 +1,4 @@
-import { s, Database } from "@rad/schema";
+import { s } from "@rad/schema";
 
 import { generateMigration } from "./migrator.js";
 

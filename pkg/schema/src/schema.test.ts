@@ -1,4 +1,4 @@
-import { s, Database } from "./schema.js";
+import { s } from "./schema.js";
 
 describe("Database", () => {
   it("creates a basic schema", () => {

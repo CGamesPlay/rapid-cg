@@ -3085,3 +3085,8 @@ yn@3.1.1:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/yn/-/yn-3.1.1.tgz#1e87401a09d767c1d5eab26a6e4c185182d2eb50"
   integrity sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==
+
+zod@^3.11.1:
+  version "3.11.1"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.11.1.tgz#872ce72e2d5dc0a7c5d528a132cf931fa11ddd1a"
+  integrity sha512-L69LR5/uL4zxcXGV4wWPPDF0/Xy5d0OOfGxsjTNTjXmHNHjIuWbSz7516WTLK9z5UTXt0QGbOYX2Y3O4h7Lb5g==

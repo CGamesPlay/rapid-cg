@@ -1,4 +1,4 @@
-import { s, Database as DatabaseSchema } from "@rad/schema";
+import { s, DatabaseSchema } from "@rad/schema";
 import { Database, SQL } from "@rad/sqlite";
 
 export function introspectDatabase(db: Database): DatabaseSchema {

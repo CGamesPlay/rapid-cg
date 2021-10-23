@@ -1,5 +1,5 @@
 import prettier from "prettier";
-import { s, Database, Table, Column } from "@rad/schema";
+import { s, DatabaseSchema, TableSchema, Column } from "@rad/schema";
 
 function lit(val: unknown): string {
   if (typeof val === "bigint") {
@@ -142,7 +142,7 @@ type TableInfo = {
   source: string;
 };
 
-function generateTableClient(schema: Table): TableInfo {
+function generateTableClient(schema: TableSchema): TableInfo {
   const tableType = schema.name;
   const whereType = `${schema.name}Where`;
   const clientType = `${schema.name}Client`;
@@ -299,7 +299,7 @@ export class ${clientType} extends Runtime.GenericClient {
   return { name: schema.name, clientType, source };
 }
 
-export function generateClient(schema: Database): string {
+export function generateClient(schema: DatabaseSchema): string {
   const tableInfo = Object.values(schema.tables).map(generateTableClient);
   const typeDecls = [
     `$db: Runtime.Database;`,

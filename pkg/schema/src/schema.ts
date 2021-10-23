@@ -1,50 +1,4 @@
-export type ColumnAny = {
-  name: string;
-  unique?: boolean;
-  nullable?: boolean;
-};
-export type ColumnDate = ColumnAny & {
-  type: "date";
-  mode?: "createdAt" | "updatedAt";
-  primary?: boolean;
-  default?: Date;
-};
-export type ColumnInteger = ColumnAny & {
-  type: "integer";
-  primary?: boolean | "autoincrement";
-  default?: number | bigint;
-};
-export type ColumnJson = ColumnAny & {
-  type: "json";
-  primary?: boolean;
-  default?: unknown;
-};
-export type ColumnText = ColumnAny & {
-  type: "text";
-  primary?: boolean;
-  default?: string;
-};
-export type ColumnUuid = ColumnAny & {
-  type: "uuid";
-  autogenerate?: boolean;
-  primary?: boolean;
-  default?: string;
-};
-export type Column =
-  | ColumnDate
-  | ColumnInteger
-  | ColumnJson
-  | ColumnText
-  | ColumnUuid;
-
-export type Table = {
-  name: string;
-  columns: Record<string, Column>;
-};
-
-export type Database = {
-  tables: Record<string, Table>;
-};
+import * as T from "./types.js";
 
 function clone<T>(base: T, ...newProps: Array<any>): T {
   const ret = Object.create(Object.getPrototypeOf(base));
@@ -53,15 +7,15 @@ function clone<T>(base: T, ...newProps: Array<any>): T {
 }
 
 class ColumnAnyBuilder<DefaultType = never> {
-  result: Omit<Column, "name">;
+  result: Omit<T.Column, "name">;
 
-  constructor(input: Omit<Column, "name">) {
+  constructor(input: Omit<T.Column, "name">) {
     this.result = input;
     Object.assign(this, input);
   }
 
-  build(name: string): Column {
-    return Object.assign({} as Column, this.result, { name });
+  build(name: string): T.Column {
+    return Object.assign({} as T.Column, this.result, { name });
   }
 
   protected withProperties(input: unknown): this {
@@ -113,9 +67,9 @@ class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
 }
 
 class TableBuilder {
-  columns: Record<string, Column> = {};
+  columns: Record<string, T.Column> = {};
 
-  build(name: string): Table {
+  build(name: string): T.TableSchema {
     return Object.assign({}, this, { name }) as any;
   }
 
@@ -159,12 +113,12 @@ export const s = {
     return result;
   },
 
-  database(tables: Record<string, TableBuilder>): Database {
-    const result: Database = { tables: {} as any };
+  database(tables: Record<string, TableBuilder>): T.DatabaseSchema {
+    const result: any = { tables: {} as any };
     for (let name in tables) {
       result.tables[name] = tables[name].build(name);
     }
-    return result;
+    return T.DatabaseSchema.parse(result);
   },
 };
 

@@ -1,4 +1,4 @@
-import { s, Database, Table, Column } from "@rad/schema";
+import { s, DatabaseSchema, TableSchema, Column } from "@rad/schema";
 
 function id(val: string) {
   return `"${val.replace(/"/g, '""')}"`;
@@ -42,7 +42,10 @@ function columnDefinition(c: Column): string {
     .join(" ");
 }
 
-function generateTableCopyMigration(from: Table, to: Table): string {
+function generateTableCopyMigration(
+  from: TableSchema,
+  to: TableSchema
+): string {
   const transferTable = `transfer${to.name}`;
   let lines: string[] = [];
   lines = lines.concat([
@@ -71,8 +74,8 @@ function generateTableCopyMigration(from: Table, to: Table): string {
 }
 
 function generateTableMigration(
-  from: Table | undefined,
-  to: Table | undefined
+  from: TableSchema | undefined,
+  to: TableSchema | undefined
 ): string {
   /* istanbul ignore if */
   if (from === undefined && to === undefined) return "";
@@ -120,7 +123,7 @@ function generateTableMigration(
   }
 }
 
-type MigrationParams = { from: Database; to: Database };
+type MigrationParams = { from: DatabaseSchema; to: DatabaseSchema };
 
 export function generateMigration({ from, to }: MigrationParams): string {
   const components: string[] = [];

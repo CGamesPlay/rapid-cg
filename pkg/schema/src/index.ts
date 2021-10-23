@@ -1,7 +1,8 @@
 import { Command } from "commander";
 
-import { Database } from "./schema.js";
+import { DatabaseSchema } from "./types.js";
 
+export * from "./types.js";
 export * from "./schema.js";
 
 export interface Generator {
@@ -14,6 +15,6 @@ export interface Generator {
 }
 
 export type Config = {
-  database: Database;
+  database: DatabaseSchema;
   generators: Generator[];
 };

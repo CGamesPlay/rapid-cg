@@ -1,4 +1,4 @@
-import { s, Database } from "@rad/schema";
+import { s, DatabaseSchema } from "@rad/schema";
 
 import { generateClient } from "./generator.js";
 
@@ -25,7 +25,7 @@ const testCases = {
 describe("generateClient", () => {
   test.each(Object.entries(testCases))(
     "generates %s",
-    (name: string, schema: Database) => {
+    (name: string, schema: DatabaseSchema) => {
       const src = generateClient(schema);
       expect(src).toMatchSnapshot();
     }
