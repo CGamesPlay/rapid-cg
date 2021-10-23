@@ -9,6 +9,6 @@ type Options = {
 };
 
 export function loadConfig(opts: Options): Config {
-  register({ project: opts.project });
+  register({ project: opts.project, moduleTypes: { [opts.config]: "cjs" } });
   return require(path.resolve(opts.config)).default;
 }
