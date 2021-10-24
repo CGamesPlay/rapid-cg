@@ -18,7 +18,7 @@ const config: Config = {
   database,
   generators: [
     sqliteGenerator({
-      clientFilename: path.join(__dirname, "src/client.generated.ts"),
+      clientFilename: path.join(__dirname, "src/sqlite.generated.ts"),
       migrationsPath: path.join(__dirname, "db/migrations"),
     }),
   ],

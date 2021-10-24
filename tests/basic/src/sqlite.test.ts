@@ -1,8 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import { SQL, randomUuid } from "@rad/sqlite";
+import { expectType } from "ts-expect";
 
-import { createClient, Client } from "./client.generated.js";
+import { createClient, Client } from "./sqlite.generated.js";
+import * as Types from "./sqlite.generated.js";
 
 const testStarted = new Date(2000, 0);
 
@@ -18,6 +20,113 @@ function migrate(client: Client) {
     client.$db.exec(upMigration);
   });
 }
+
+describe("generated types", () => {
+  it("Model", () => {
+    let doc: Types.Doc = {
+      rowid: 1,
+      id: randomUuid(),
+      createdAt: testStarted,
+      updatedAt: testStarted,
+      content: "string",
+      extra: {},
+    };
+    Types.Doc.parse(doc);
+    // @ts-expect-error invalild value for column
+    doc.rowid = "string";
+    expect(Types.Doc.safeParse(doc)).toMatchObject({ success: false });
+  });
+
+  it("Where", () => {
+    let whereDoc: Types.WhereDoc;
+    whereDoc = { content: "string" };
+    whereDoc = { AND: [{ content: "string" }, { rowid: 7 }] };
+    whereDoc = { AND: { content: "string" } };
+    Types.WhereDoc.parse(whereDoc);
+    // @ts-expect-error invalid value for column
+    whereDoc = { content: 42 };
+    expect(Types.WhereDoc.safeParse(whereDoc)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("OrderBy", () => {
+    let orderBy: Types.OrderDocBy;
+    orderBy = { updatedAt: "desc" };
+    Types.OrderDocBy.parse(orderBy);
+    // @ts-expect-error invalid sort order
+    orderBy = { updatedAt: "unclear" };
+    expect(Types.OrderDocBy.safeParse(orderBy)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("FindFirstArgs", () => {
+    let findFirstArgs: Types.FindFirstDocArgs;
+    findFirstArgs = { where: { content: { not: null } } };
+    Types.FindFirstDocArgs.parse(findFirstArgs);
+    // @ts-expect-error invalid value for column
+    findFirstArgs = { where: { content: 42 } };
+    expect(Types.FindFirstDocArgs.safeParse(findFirstArgs)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("FindManyArgs", () => {
+    let findManyArgs: Types.FindManyDocArgs;
+    findManyArgs = { where: { content: { not: null } } };
+    Types.FindManyDocArgs.parse(findManyArgs);
+    // @ts-expect-error invalid value for column
+    findManyArgs = { where: { content: 42 } };
+    expect(Types.FindManyDocArgs.safeParse(findManyArgs)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("CreateArgs", () => {
+    let createArgs: Types.CreateDocArgs;
+    createArgs = { data: { content: "wow" } };
+    Types.CreateDocArgs.parse(createArgs);
+    // @ts-expect-error array instead of object
+    createArgs = { data: [{ content: "wow" }] };
+    expect(Types.CreateDocArgs.safeParse(createArgs)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("CreateManyArgs", () => {
+    let createManyArgs: Types.CreateManyDocArgs;
+    createManyArgs = { data: [{ content: "wow" }] };
+    Types.CreateManyDocArgs.parse(createManyArgs);
+    // @ts-expect-error single object instead of array
+    createManyArgs = { data: { content: "wow" } };
+    expect(Types.CreateManyDocArgs.safeParse(createManyArgs)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("UpdateManyArgs", () => {
+    let updateManyArgs: Types.UpdateManyDocArgs;
+    updateManyArgs = { data: { content: "wow" } };
+    Types.UpdateManyDocArgs.parse(updateManyArgs);
+    // @ts-expect-error array instead of object
+    updateManyArgs = { data: [{ content: "wow" }] };
+    expect(Types.UpdateManyDocArgs.safeParse(updateManyArgs)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("DeleteManyArgs", () => {
+    let deleteManyArgs: Types.DeleteManyDocArgs;
+    deleteManyArgs = { where: { content: null } };
+    Types.DeleteManyDocArgs.parse(deleteManyArgs);
+    // @ts-expect-error invalid value for column
+    deleteManyArgs = { where: { content: 42 } };
+    expect(Types.DeleteManyDocArgs.safeParse(deleteManyArgs)).toMatchObject({
+      success: false,
+    });
+  });
+});
 
 describe("generated client", () => {
   let client: Client;

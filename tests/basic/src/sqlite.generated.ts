@@ -1,14 +1,15 @@
 import * as Runtime from "@rad/sqlite";
-import { SQL } from "@rad/sqlite";
+import { SQL, z } from "@rad/sqlite";
 
-export type Doc = {
-  rowid: number | bigint;
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  content: string;
-  extra: unknown;
-};
+export const Doc = z.object({
+  rowid: z.union([z.number(), z.bigint()]),
+  id: z.string().uuid(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  content: z.string(),
+  extra: z.unknown(),
+});
+export type Doc = z.infer<typeof Doc>;
 
 export type WhereDoc = {
   rowid?: Runtime.WhereNumber;
@@ -20,50 +21,69 @@ export type WhereDoc = {
   OR?: Runtime.MaybeArray<WhereDoc>;
   NOT?: Runtime.MaybeArray<WhereDoc>;
 };
+export const WhereDoc: z.ZodSchema<WhereDoc> = z.lazy(() =>
+  z.object({
+    rowid: Runtime.WhereNumber.optional(),
+    id: Runtime.WhereUuid.optional(),
+    createdAt: Runtime.WhereDate.optional(),
+    updatedAt: Runtime.WhereDate.optional(),
+    content: Runtime.WhereString.optional(),
+    AND: Runtime.MaybeArray(WhereDoc).optional(),
+    OR: Runtime.MaybeArray(WhereDoc).optional(),
+    NOT: Runtime.MaybeArray(WhereDoc).optional(),
+  })
+);
 
-export type DocOrderBy = {
-  rowid?: Runtime.SortOrder;
-  id?: Runtime.SortOrder;
-  createdAt?: Runtime.SortOrder;
-  updatedAt?: Runtime.SortOrder;
-  content?: Runtime.SortOrder;
-};
+export const OrderDocBy = z.object({
+  rowid: Runtime.SortOrder.optional(),
+  id: Runtime.SortOrder.optional(),
+  createdAt: Runtime.SortOrder.optional(),
+  updatedAt: Runtime.SortOrder.optional(),
+  content: Runtime.SortOrder.optional(),
+});
+export type OrderDocBy = z.infer<typeof OrderDocBy>;
 
-export type FindFirstDocArgs = {
-  where?: WhereDoc;
-  orderBy?: Runtime.MaybeArray<DocOrderBy>;
-  offset?: number;
-};
+export const FindFirstDocArgs = z.object({
+  where: WhereDoc.optional(),
+  orderBy: Runtime.MaybeArray(OrderDocBy).optional(),
+  offset: z.number().optional(),
+});
+export type FindFirstDocArgs = z.infer<typeof FindFirstDocArgs>;
 
-export type FindManyDocArgs = {
-  where?: WhereDoc;
-  orderBy?: Runtime.MaybeArray<DocOrderBy>;
-  limit?: number;
-  offset?: number;
-};
+export const FindManyDocArgs = z.object({
+  where: WhereDoc.optional(),
+  orderBy: Runtime.MaybeArray(OrderDocBy).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type FindManyDocArgs = z.infer<typeof FindManyDocArgs>;
 
-export type CreateDocArgs = {
-  data: Partial<Doc>;
-};
+export const CreateDocArgs = z.object({
+  data: Doc.partial(),
+});
+export type CreateDocArgs = z.infer<typeof CreateDocArgs>;
 
-export type CreateManyDocArgs = {
-  data: Partial<Doc>[];
-};
+export const CreateManyDocArgs = z.object({
+  data: Doc.partial().array(),
+});
+export type CreateManyDocArgs = z.infer<typeof CreateManyDocArgs>;
 
-export type UpdateManyDocArgs = {
-  data: Partial<Doc>;
-  where?: WhereDoc;
-  orderBy?: Runtime.MaybeArray<DocOrderBy>;
-  limit?: number;
-  offset?: number;
-};
+export const UpdateManyDocArgs = z.object({
+  data: Doc.partial(),
+  where: WhereDoc.optional(),
+  orderBy: Runtime.MaybeArray(OrderDocBy).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type UpdateManyDocArgs = z.infer<typeof UpdateManyDocArgs>;
 
-export type DeleteManyDocArgs = {
-  where?: WhereDoc;
-  orderBy?: Runtime.MaybeArray<DocOrderBy>;
-  limit?: number;
-  offset?: number;
-};
+export const DeleteManyDocArgs = z.object({
+  where: WhereDoc.optional(),
+  orderBy: Runtime.MaybeArray(OrderDocBy).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type DeleteManyDocArgs = z.infer<typeof DeleteManyDocArgs>;
 
 const formatWhereDoc = Runtime.makeWhereChainable((clause: WhereDoc) => {
   const components: SQL.Template[] = [];

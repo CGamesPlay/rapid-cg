@@ -1,6 +1,19 @@
+import { z } from "zod";
+
 import SQL from "./tag.js";
 import { MaybeArray } from "./utils.js";
 
+const WhereScalar = <T extends z.ZodTypeAny>(t: T) =>
+  z.object({
+    equals: t.nullable().optional(),
+    not: t.nullable().optional(),
+    gt: t.optional(),
+    lt: t.optional(),
+    gte: t.optional(),
+    lte: t.optional(),
+    in: t.array().optional(),
+    notIn: t.array().optional(),
+  });
 type WhereScalar<T> = {
   equals?: T | null;
   not?: T | null;
@@ -70,6 +83,11 @@ function makeWhereScalar<T>(
   return parts;
 }
 
+export const WhereString = z.union([
+  z.string(),
+  z.null(),
+  WhereScalar(z.string()).extend({ like: z.string().optional() }),
+]);
 export type WhereString =
   | string
   | null
@@ -90,6 +108,12 @@ export function makeWhereString(
   return SQL.join(parts, " AND ");
 }
 
+export const WhereNumber = z.union([
+  z.number(),
+  z.bigint(),
+  z.null(),
+  WhereScalar(z.union([z.number(), z.bigint()])),
+]);
 export type WhereNumber = number | bigint | null | WhereScalar<number | bigint>;
 
 export function makeWhereNumber(
@@ -108,6 +132,7 @@ export function makeWhereNumber(
   return SQL.join(parts, " AND ");
 }
 
+export const WhereDate = z.union([z.date(), z.null(), WhereScalar(z.date())]);
 export type WhereDate = Date | null | WhereScalar<Date>;
 
 export function makeWhereDate(column: string, where: WhereDate): SQL.Template {
@@ -121,6 +146,11 @@ export function makeWhereDate(column: string, where: WhereDate): SQL.Template {
   return SQL.join(parts, " AND ");
 }
 
+export const WhereUuid = z.union([
+  z.string().uuid(),
+  z.null(),
+  WhereScalar(z.string().uuid()),
+]);
 export type WhereUuid = string | null | WhereScalar<string>;
 
 export function makeWhereUuid(column: string, where: WhereUuid): SQL.Template {

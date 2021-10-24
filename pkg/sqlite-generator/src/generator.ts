@@ -17,19 +17,19 @@ function sqlId(id: string): string {
   return `"${id.replace(/"/g, '""')}"`;
 }
 
-function columnType(column: Column): string {
-  const orNull = column.nullable ? " | null" : "";
+function columnSchema(column: Column): string {
+  const orNull = column.nullable ? ".nullable()" : "";
   switch (column.type) {
     case "date":
-      return "Date" + orNull;
+      return "z.date()" + orNull;
     case "integer":
-      return "number | bigint" + orNull;
+      return "z.union([z.number(), z.bigint()])" + orNull;
     case "json":
-      return "unknown";
+      return "z.unknown()";
     case "text":
-      return "string" + orNull;
+      return "z.string()" + orNull;
     case "uuid":
-      return "string" + orNull;
+      return "z.string().uuid()" + orNull;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -52,6 +52,10 @@ function columnWhereType(column: Column): string {
   }
 }
 
+function columnWhereSchema(column: Column): string {
+  return columnWhereType(column);
+}
+
 function columnFormatWhere(column: Column): string {
   const args = `(${lit(column.name)}, clause.${column.name})`;
   switch (column.type) {
@@ -70,15 +74,17 @@ function columnFormatWhere(column: Column): string {
 }
 
 function columnParse(column: Column): string {
+  const orNull = column.nullable ? " | null" : "";
   switch (column.type) {
     case "date":
       return `new Date(row.${column.name} as string)`;
     case "integer":
-    case "text":
-    case "uuid":
-      return `row.${column.name} as ${columnType(column)}`;
+      return `row.${column.name} as number | bigint${orNull}`;
     case "json":
       return `JSON.parse(row.${column.name} as string)`;
+    case "text":
+    case "uuid":
+      return `row.${column.name} as string${orNull}`;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
@@ -154,7 +160,7 @@ function generateModelClient(schema: ModelSchema): ModelInfo {
   const clientName = _.lowerFirst(pluralize(modelType));
   const whereType = `Where${modelType}`;
   const clientType = `${modelType}Client`;
-  const orderByType = `${modelType}OrderBy`;
+  const orderByType = `Order${modelType}By`;
   const findFirstArgsType = `FindFirst${modelType}Args`;
   const findManyArgsType = `FindMany${modelType}Args`;
   const createArgsType = `Create${modelType}Args`;
@@ -175,9 +181,10 @@ function generateModelClient(schema: ModelSchema): ModelInfo {
     columns.unshift(rowid);
   }
   // prettier-ignore
-  const source = `export type ${modelType} = {
-  ${columns.map((c) => `${c.name}: ${columnType(c)};`).join("\n")}
-};
+  const source = `export const ${modelType} = z.object({
+  ${columns.map((c) => `${c.name}: ${columnSchema(c)},`).join("\n")}
+});
+export type ${modelType} = z.infer<typeof ${modelType}>;
 
 export type ${whereType} = {
   ${columns
@@ -188,49 +195,67 @@ export type ${whereType} = {
   OR?: Runtime.MaybeArray<${whereType}>;
   NOT?: Runtime.MaybeArray<${whereType}>;
 };
-
-export type ${orderByType} = {
+export const ${whereType}: z.ZodSchema<${whereType}> = z.lazy(() =>
+  z.object({
   ${columns
     .filter((c) => c.type !== "json")
-    .map((c) => `${c.name}?: Runtime.SortOrder;`)
+    .map((c) => `${c.name}: ${columnWhereSchema(c)}.optional(),`)
     .join("\n")}
-};
+  AND: Runtime.MaybeArray(${whereType}).optional(),
+  OR: Runtime.MaybeArray(${whereType}).optional(),
+  NOT: Runtime.MaybeArray(${whereType}).optional(),
+  })
+);
 
-export type ${findFirstArgsType} = {
-  where?: ${whereType};
-  orderBy?: Runtime.MaybeArray<${orderByType}>;
-  offset?: number;
-};
+export const ${orderByType} = z.object({
+  ${columns
+    .filter((c) => c.type !== "json")
+    .map((c) => `${c.name}: Runtime.SortOrder.optional(),`)
+    .join("\n")}
+});
+export type ${orderByType} = z.infer<typeof ${orderByType}>;
 
-export type ${findManyArgsType} = {
-  where?: ${whereType};
-  orderBy?: Runtime.MaybeArray<${orderByType}>;
-  limit?: number;
-  offset?: number;
-};
+export const ${findFirstArgsType} = z.object({
+  where: ${whereType}.optional(),
+  orderBy: Runtime.MaybeArray(${orderByType}).optional(),
+  offset: z.number().optional(),
+});
+export type ${findFirstArgsType} = z.infer<typeof ${findFirstArgsType}>;
 
-export type ${createArgsType} = {
-  data: Partial<${modelType}>;
-};
+export const ${findManyArgsType} = z.object({
+  where: ${whereType}.optional(),
+  orderBy: Runtime.MaybeArray(${orderByType}).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type ${findManyArgsType} = z.infer<typeof ${findManyArgsType}>;
 
-export type ${createManyArgsType} = {
-  data: Partial<${modelType}>[];
-};
+export const ${createArgsType} = z.object({
+  data: ${modelType}.partial(),
+});
+export type ${createArgsType} = z.infer<typeof ${createArgsType}>;
 
-export type ${updateManyArgsType} = {
-  data: Partial<${modelType}>;
-  where?: ${whereType};
-  orderBy?: Runtime.MaybeArray<${orderByType}>;
-  limit?: number;
-  offset?: number;
-};
+export const ${createManyArgsType} = z.object({
+  data: ${modelType}.partial().array(),
+});
+export type ${createManyArgsType} = z.infer<typeof ${createManyArgsType}>;
 
-export type ${deleteManyArgsType} = {
-  where?: ${whereType};
-  orderBy?: Runtime.MaybeArray<${orderByType}>;
-  limit?: number;
-  offset?: number;
-};
+export const ${updateManyArgsType} = z.object({
+  data: ${modelType}.partial(),
+  where: ${whereType}.optional(),
+  orderBy: Runtime.MaybeArray(${orderByType}).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type ${updateManyArgsType} = z.infer<typeof ${updateManyArgsType}>;
+
+export const ${deleteManyArgsType} = z.object({
+  where: ${whereType}.optional(),
+  orderBy: Runtime.MaybeArray(${orderByType}).optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+});
+export type ${deleteManyArgsType} = z.infer<typeof ${deleteManyArgsType}>;
 
 const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => {
   const components: SQL.Template[] = [];
@@ -356,7 +381,7 @@ export function generateClient(schema: DatabaseSchema): string {
   ];
   const src = `
 import * as Runtime from "@rad/sqlite";
-import { SQL } from "@rad/sqlite";
+import { SQL, z } from "@rad/sqlite";
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 

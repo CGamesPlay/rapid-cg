@@ -1,7 +1,10 @@
+import { z } from "zod";
+
 import { SQL } from "./tag.js";
 import { MaybeArray } from "./utils.js";
 
-export type SortOrder = "asc" | "desc";
+export const SortOrder = z.enum(["asc", "desc"]);
+export type SortOrder = z.infer<typeof SortOrder>;
 
 export function makeOrderBy<T extends Record<string, SortOrder>>(
   args: MaybeArray<T>
