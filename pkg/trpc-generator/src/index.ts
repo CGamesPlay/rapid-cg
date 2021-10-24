@@ -1,6 +1,10 @@
 import path from "path";
-import * as fs from "fs";
-import { Config, Generator } from "@rad/schema";
+import {
+  Config,
+  Generator,
+  generatedBanner,
+  writeGeneratedFile,
+} from "@rad/schema";
 
 import { generateServer } from "./generator.js";
 
@@ -15,9 +19,10 @@ export default function trpcGenerator(opts: Options): Generator {
   }
   return {
     name: "@rad/trpc-generator",
-    async generate(config: Config) {
+    generate(config: Config) {
+      const banner = generatedBanner("@rad/trpc-generator");
       const source = generateServer(config.database, opts.clientImport);
-      await fs.promises.writeFile(opts.serverFilename, source);
+      return writeGeneratedFile(opts.serverFilename, banner + "\n" + source);
     },
   };
 }

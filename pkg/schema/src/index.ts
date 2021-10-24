@@ -4,6 +4,7 @@ import { DatabaseSchema } from "./types.js";
 
 export * from "./types.js";
 export * from "./schema.js";
+export * from "./utils.js";
 
 export interface Generator {
   // Should correspond to the package name, e.g. "@rad/sqlite-generator"

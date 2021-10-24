@@ -1,8 +1,12 @@
 import path from "path";
-import fs from "fs";
 import mkdirp from "mkdirp";
 import { Command } from "commander";
-import { Config, Generator } from "@rad/schema";
+import {
+  Config,
+  Generator,
+  generatedBanner,
+  writeGeneratedFile,
+} from "@rad/schema";
 import { Database } from "@rad/sqlite";
 
 import { introspectDatabase } from "./introspector.js";
@@ -31,9 +35,10 @@ export default function sqliteGenerator(opts: Options): Generator {
   }
   return {
     name: "@rad/sqlite-generator",
-    async generate(config: Config) {
+    generate(config: Config) {
+      const banner = generatedBanner("@rad/sqlite-generator");
       const source = generateClient(config.database);
-      fs.writeFileSync(opts.clientFilename, source);
+      return writeGeneratedFile(opts.clientFilename, banner + "\n" + source);
     },
     commands(config: Config) {
       let automigrateCmd = new Command("automigrate")
@@ -58,7 +63,7 @@ export default function sqliteGenerator(opts: Options): Generator {
           "generate a migration script based on the current state of the database"
         )
         .option("-d, --database <path>", "path to database file")
-        .action(() => {
+        .action(async () => {
           const { database: databaseFilename } = migrateCmd.opts();
           const db = new Database(databaseFilename);
           const from = introspectDatabase(db);
@@ -70,9 +75,10 @@ export default function sqliteGenerator(opts: Options): Generator {
             return;
           }
           const migrateDown = generateMigration({ from: to, to: from });
+          const banner = generatedBanner("@rad/sqlite-generator", "--");
           const source = `-- migrate:up\n${migrateUp}\n\n-- migrate:down\n${migrateDown}\n`;
           mkdirp.sync(opts.migrationsPath);
-          fs.writeFileSync(filename, source);
+          await writeGeneratedFile(filename, banner + "\n" + source);
           console.log("created", path.relative(process.cwd(), filename));
         });
       return [automigrateCmd, migrateCmd];
