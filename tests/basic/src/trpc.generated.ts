@@ -4,48 +4,58 @@ import * as trpc from "@trpc/server";
 
 import * as Types from "./sqlite.generated.js";
 
-type Router = ReturnType<typeof trpc.router>;
+// This is necessary because @trpc/server does not export the Router type (it
+// exports LegacyRouter as Router).
+/* istanbul ignore next */
+class Wrapper<T> {
+  wrapped() {
+    return trpc.router<T>();
+  }
+}
+type Router<T> = ReturnType<Wrapper<T>["wrapped"]>;
 
-export function scaffoldDoc(router: Router, client: Types.Client) {
+type Context = { client: Types.Client };
+
+export function scaffoldDoc(router: Router<Context>) {
   return router
     .query("findFirst", {
       input: Types.FindFirstDocArgs,
-      async resolve({ input }) {
-        return client.docs.findFirst(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.docs.findFirst(input);
       },
     })
     .query("findMany", {
       input: Types.FindManyDocArgs,
-      async resolve({ input }) {
-        return client.docs.findMany(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.docs.findMany(input);
       },
     })
     .mutation("create", {
       input: Types.CreateDocArgs,
-      async resolve({ input }) {
-        return client.docs.create(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.docs.create(input);
       },
     })
     .mutation("createMany", {
       input: Types.CreateManyDocArgs,
-      async resolve({ input }) {
-        await client.docs.createMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.docs.createMany(input);
       },
     })
     .mutation("updateMany", {
       input: Types.UpdateManyDocArgs,
-      async resolve({ input }) {
-        await client.docs.updateMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.docs.updateMany(input);
       },
     })
     .mutation("deleteMany", {
       input: Types.DeleteManyDocArgs,
-      async resolve({ input }) {
-        await client.docs.deleteMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.docs.deleteMany(input);
       },
     });
 }
 
-export function scaffoldDatabase(router: Router, client: Types.Client) {
-  return router.merge("docs.", scaffoldDoc(trpc.router(), client));
+export function scaffoldDatabase(router: Router<Context>) {
+  return router.merge("docs.", scaffoldDoc(trpc.router()));
 }

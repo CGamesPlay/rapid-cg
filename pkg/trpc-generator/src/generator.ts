@@ -24,42 +24,42 @@ function generateModelServer(schema: ModelSchema): ModelInfo {
   const updateManyArgsType = `UpdateMany${modelType}Args`;
   const deleteManyArgsType = `DeleteMany${modelType}Args`;
   // prettier-ignore
-  const source = `export function ${scaffoldName}(router: Router, client: Types.Client) {
+  const source = `export function ${scaffoldName}(router: Router<Context>) {
   return router
     .query("findFirst", {
       input: Types.${findFirstArgsType},
-      async resolve({ input }) {
-        return client.${clientName}.findFirst(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.${clientName}.findFirst(input);
       },
     })
     .query("findMany", {
       input: Types.${findManyArgsType},
-      async resolve({ input }) {
-        return client.${clientName}.findMany(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.${clientName}.findMany(input);
       },
     })
     .mutation("create", {
       input: Types.${createArgsType},
-      async resolve({ input }) {
-        return client.${clientName}.create(input);
+      async resolve({ ctx, input }) {
+        return ctx.client.${clientName}.create(input);
       },
     })
     .mutation("createMany", {
       input: Types.${createManyArgsType},
-      async resolve({ input }) {
-        await client.${clientName}.createMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.${clientName}.createMany(input);
       },
     })
     .mutation("updateMany", {
       input: Types.${updateManyArgsType},
-      async resolve({ input }) {
-        await client.${clientName}.updateMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.${clientName}.updateMany(input);
       },
     })
     .mutation("deleteMany", {
       input: Types.${deleteManyArgsType},
-      async resolve({ input }) {
-        await client.${clientName}.deleteMany(input);
+      async resolve({ ctx, input }) {
+        return await ctx.client.${clientName}.deleteMany(input);
       },
     })
 }`;
@@ -76,17 +76,24 @@ import * as trpc from "@trpc/server";
 
 import * as Types from "${clientImport}";
 
-type Router = ReturnType<typeof trpc.router>;
+// This is necessary because @trpc/server does not export the Router type (it
+// exports LegacyRouter as Router).
+/* istanbul ignore next */
+class Wrapper<T> {
+  wrapped() {
+    return trpc.router<T>();
+  }
+}
+type Router<T> = ReturnType<Wrapper<T>["wrapped"]>;
+
+type Context = { client: Types.Client };
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 
-export function scaffoldDatabase(router: Router, client: Types.Client) {
+export function scaffoldDatabase(router: Router<Context>) {
   return router
   ${modelInfo
-    .map(
-      (m) =>
-        `.merge("${m.clientName}.", ${m.scaffoldName}(trpc.router(), client))`
-    )
+    .map((m) => `.merge("${m.clientName}.", ${m.scaffoldName}(trpc.router()))`)
     .join("\n")};
 }`;
   return prettier.format(src, { parser: "typescript" });

@@ -1,25 +1,9 @@
-import * as fs from "fs";
-import * as path from "path";
 import { SQL, randomUuid } from "@rad/sqlite";
-import { expectType } from "ts-expect";
 
-import { createClient, Client } from "./sqlite.generated.js";
+import { client } from "./testUtils.js";
 import * as Types from "./sqlite.generated.js";
 
 const testStarted = new Date(2000, 0);
-
-function migrate(client: Client) {
-  const dir = path.join(__dirname, "../db/migrations");
-  const files = fs.readdirSync(dir);
-  files.forEach((f) => {
-    const sql = fs.readFileSync(path.join(dir, f), "utf-8");
-    expect(sql).toMatch(/^-- migrate:up\n/m);
-    expect(sql).toMatch("\n-- migrate:down\n");
-    const endOfMigration = sql.indexOf("\n-- migrate:down\n");
-    const upMigration = sql.substr(0, endOfMigration);
-    client.$db.exec(upMigration);
-  });
-}
 
 describe("generated types", () => {
   it("Model", () => {
@@ -129,11 +113,7 @@ describe("generated types", () => {
 });
 
 describe("generated client", () => {
-  let client: Client;
   beforeAll(() => {
-    client = createClient(":memory:");
-    migrate(client);
-
     for (let i = 0; i < 10; i++) {
       client.docs.create({
         data: {
@@ -143,18 +123,6 @@ describe("generated client", () => {
           content: `doc ${i + 1}`,
         },
       });
-    }
-  });
-
-  beforeEach(() => {
-    client.$db.run(SQL`BEGIN`);
-  });
-
-  afterEach(() => {
-    try {
-      client.$db.run(SQL`ROLLBACK`);
-    } catch (e) {
-      // error - no transaction is in progress
     }
   });
 
