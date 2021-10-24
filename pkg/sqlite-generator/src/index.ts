@@ -1,13 +1,13 @@
 import path from "path";
 import mkdirp from "mkdirp";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import {
   Config,
   Generator,
   generatedBanner,
   writeGeneratedFile,
 } from "@rad/schema";
-import { Database } from "@rad/sqlite";
+import { SQL, Database } from "@rad/sqlite";
 
 import { introspectDatabase } from "./introspector.js";
 import { generateMigration } from "./migrator.js";
@@ -19,6 +19,17 @@ function getMigrationName() {
     .toISOString()
     .substring(0, 19)
     .replace(/[^0-9]/g, "")}_migration.sql`;
+}
+
+function getDatabase(providedUrl: string | undefined) {
+  if (providedUrl) return new Database(providedUrl);
+  const url = process.env.DATABASE_URL || "";
+  if (url.startsWith("sqlite:")) {
+    return new Database(url.slice(7));
+  }
+  throw new InvalidArgumentError(
+    "database not provided and DATABASE_URL not set"
+  );
 }
 
 type Options = {
@@ -41,14 +52,13 @@ export default function sqliteGenerator(opts: Options): Generator {
       return writeGeneratedFile(opts.clientFilename, banner + "\n" + source);
     },
     commands(config: Config) {
-      let automigrateCmd = new Command("automigrate")
+      const automigrateCmd = new Command("automigrate")
         .description(
           "update the database to the current schema without using a migration script"
         )
         .option("-d, --database <path>", "path to database file")
         .action(() => {
-          const { database: databaseFilename } = automigrateCmd.opts();
-          const db = new Database(databaseFilename);
+          const db = getDatabase(automigrateCmd.opts().database);
           const from = introspectDatabase(db);
           const to = config.database;
           const source = generateMigration({ from, to });
@@ -58,14 +68,14 @@ export default function sqliteGenerator(opts: Options): Generator {
             "NOTE: you will need to revert the database file to an earlier version if you want to automatically generate a migration script using the 'migrate' command."
           );
         });
-      let migrateCmd = new Command("migrate")
+
+      const migrateCmd = new Command("migrate")
         .description(
           "generate a migration script based on the current state of the database"
         )
         .option("-d, --database <path>", "path to database file")
         .action(async () => {
-          const { database: databaseFilename } = migrateCmd.opts();
-          const db = new Database(databaseFilename);
+          const db = getDatabase(migrateCmd.opts().database);
           const from = introspectDatabase(db);
           const to = config.database;
           const filename = path.join(opts.migrationsPath, getMigrationName());
