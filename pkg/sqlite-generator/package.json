@@ -5,6 +5,7 @@
   "types": "dist/index.d.ts",
   "license": "MIT",
   "dependencies": {
+    "@rad/schema": "0.5.0",
     "@rad/sqlite": "0.5.0",
     "commander": "^8.3.0",
     "lodash": "^4.17.21",
@@ -13,7 +14,6 @@
     "prettier": "^2.4.1"
   },
   "devDependencies": {
-    "@rad/schema": "0.5.0",
     "@types/lodash": "^4.14.176",
     "@types/mkdirp": "^1.0.2",
     "@types/pluralize": "^0.0.29"

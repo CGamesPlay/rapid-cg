@@ -1,7 +1,8 @@
 {
   "private": true,
   "workspaces": [
-    "pkg/*"
+    "pkg/*",
+    "tests/*"
   ],
   "devDependencies": {
     "@types/jest": "^27.0.2",

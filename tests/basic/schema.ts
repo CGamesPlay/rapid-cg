@@ -1,6 +1,7 @@
 import * as path from "path";
 import { s, Config } from "@rad/schema";
 import sqliteGenerator from "@rad/sqlite-generator";
+import trpcGenerator from "@rad/trpc-generator";
 
 const database = s.database({
   Doc: s
@@ -20,6 +21,10 @@ const config: Config = {
     sqliteGenerator({
       clientFilename: path.join(__dirname, "src/sqlite.generated.ts"),
       migrationsPath: path.join(__dirname, "db/migrations"),
+    }),
+    trpcGenerator({
+      clientImport: "./sqlite.generated.js",
+      serverFilename: path.join(__dirname, "src/trpc.generated.ts"),
     }),
   ],
 };

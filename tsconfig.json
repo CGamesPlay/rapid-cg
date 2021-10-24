@@ -104,7 +104,8 @@
     { "path": "pkg/cli" },
     { "path": "pkg/schema" },
     { "path": "pkg/sqlite" },
-    { "path": "pkg/sqlite-generator" }
+    { "path": "pkg/sqlite-generator" },
+    { "path": "pkg/trpc-generator" }
   ],
   "exclude": [
     "**/*.test.ts"
