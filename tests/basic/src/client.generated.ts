@@ -16,9 +16,9 @@ export type docsWhere = {
   createdAt?: Runtime.WhereDate;
   updatedAt?: Runtime.WhereDate;
   content?: Runtime.WhereString;
-  AND?: docsWhere;
-  OR?: docsWhere;
-  NOT?: docsWhere;
+  AND?: Runtime.MaybeArray<docsWhere>;
+  OR?: Runtime.MaybeArray<docsWhere>;
+  NOT?: Runtime.MaybeArray<docsWhere>;
 };
 
 export type docsOrderBy = {

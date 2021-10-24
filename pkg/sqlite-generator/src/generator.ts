@@ -176,9 +176,9 @@ export type ${whereType} = {
     .filter((c) => c.type !== "json")
     .map((c) => `${c.name}?: ${columnWhereType(c)};`)
     .join("\n")}
-  AND?: ${whereType};
-  OR?: ${whereType};
-  NOT?: ${whereType};
+  AND?: Runtime.MaybeArray<${whereType}>;
+  OR?: Runtime.MaybeArray<${whereType}>;
+  NOT?: Runtime.MaybeArray<${whereType}>;
 };
 
 export type ${orderByType} = {
