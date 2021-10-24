@@ -5,7 +5,7 @@ import { generateClient } from "./generator.js";
 describe("generateClient", () => {
   it("generates a client", () => {
     const schema = s.database({
-      tbl: s.table({
+      tbl: s.model({
         text: s.text().default("a string"),
         integer: s.integer().default(100),
         bigint: s.integer().default(18014398509481984n),

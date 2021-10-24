@@ -60,15 +60,16 @@ export const Column = z.union([
 ]);
 export type Column = z.infer<typeof Column>;
 
-export const TableSchema = z.object({
+export const ModelSchema = z.object({
   name: z.string().refine(validIdentifier, {
-    message: "table name cannot be used as an identifier ",
+    message: "model name cannot be used as an identifier ",
   }),
+  tableName: z.string(),
   columns: z.record(Column),
 });
-export type TableSchema = z.infer<typeof TableSchema>;
+export type ModelSchema = z.infer<typeof ModelSchema>;
 
 export const DatabaseSchema = z.object({
-  tables: z.record(TableSchema),
+  models: z.record(ModelSchema),
 });
 export type DatabaseSchema = z.infer<typeof DatabaseSchema>;

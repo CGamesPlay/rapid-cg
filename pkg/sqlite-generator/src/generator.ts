@@ -1,5 +1,7 @@
+import _ from "lodash";
+import pluralize from "pluralize";
 import prettier from "prettier";
-import { s, DatabaseSchema, TableSchema, Column } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column } from "@rad/schema";
 
 function lit(val: unknown): string {
   if (typeof val === "bigint") {
@@ -9,6 +11,10 @@ function lit(val: unknown): string {
   } else {
     return JSON.stringify(val);
   }
+}
+
+function sqlId(id: string): string {
+  return `"${id.replace(/"/g, '""')}"`;
 }
 
 function columnType(column: Column): string {
@@ -97,7 +103,7 @@ function columnSerialize(column: Column): string {
 
 function fillCreateData(
   name: string,
-  tableType: string,
+  modelType: string,
   columns: Column[]
 ): string {
   const ops: string[] = [];
@@ -114,14 +120,14 @@ function fillCreateData(
     }
   });
   const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
-  return `function ${name}(data: Partial<${tableType}>): Partial<${tableType}> {
+  return `function ${name}(data: Partial<${modelType}>): Partial<${modelType}> {
     return ${expr};
 }`;
 }
 
 function fillUpdateData(
   name: string,
-  tableType: string,
+  modelType: string,
   columns: Column[]
 ): string {
   const ops: string[] = [];
@@ -131,33 +137,35 @@ function fillUpdateData(
     }
   });
   const expr = ops.length === 0 ? `data` : `{ ${ops.join(", ")}, ...data }`;
-  return `function ${name}(data: Partial<${tableType}>): Partial<${tableType}> {
+  return `function ${name}(data: Partial<${modelType}>): Partial<${modelType}> {
     return ${expr};
 }`;
 }
 
-type TableInfo = {
+type ModelInfo = {
   name: string;
   clientType: string;
+  clientName: string;
   source: string;
 };
 
-function generateTableClient(schema: TableSchema): TableInfo {
-  const tableType = schema.name;
-  const whereType = `${schema.name}Where`;
-  const clientType = `${schema.name}Client`;
-  const orderByType = `${schema.name}OrderBy`;
-  const findFirstArgsType = `${schema.name}FindFirstArgs`;
-  const findManyArgsType = `${schema.name}FindManyArgs`;
-  const createArgsType = `${schema.name}CreateArgs`;
-  const createManyArgsType = `${schema.name}CreateManyArgs`;
-  const updateManyArgsType = `${schema.name}UpdateManyArgs`;
-  const deleteManyArgsType = `${schema.name}DeleteManyArgs`;
-  const formatWhereFunc = `${schema.name}FormatWhere`;
-  const parseFunc = `${schema.name}Parse`;
-  const serializeFunc = `${schema.name}Serialize`;
-  const fillCreateDataFunc = `${schema.name}FillCreateData`;
-  const fillUpdateDataFunc = `${schema.name}FillUpdateData`;
+function generateModelClient(schema: ModelSchema): ModelInfo {
+  const modelType = _.upperFirst(schema.name);
+  const clientName = _.lowerFirst(pluralize(modelType));
+  const whereType = `Where${modelType}`;
+  const clientType = `${modelType}Client`;
+  const orderByType = `${modelType}OrderBy`;
+  const findFirstArgsType = `FindFirst${modelType}Args`;
+  const findManyArgsType = `FindMany${modelType}Args`;
+  const createArgsType = `Create${modelType}Args`;
+  const createManyArgsType = `CreateMany${modelType}Args`;
+  const updateManyArgsType = `UpdateMany${modelType}Args`;
+  const deleteManyArgsType = `DeleteMany${modelType}Args`;
+  const formatWhereFunc = `formatWhere${modelType}`;
+  const parseFunc = `parse${modelType}`;
+  const serializeFunc = `serialize${modelType}`;
+  const fillCreateDataFunc = `fill${modelType}CreateData`;
+  const fillUpdateDataFunc = `fill${modelType}UpdateData`;
   const columns = Object.values(schema.columns);
   let rowid = columns.find(
     (c) => c.type === "integer" && c.primary === "autoincrement"
@@ -167,7 +175,7 @@ function generateTableClient(schema: TableSchema): TableInfo {
     columns.unshift(rowid);
   }
   // prettier-ignore
-  const source = `export type ${tableType} = {
+  const source = `export type ${modelType} = {
   ${columns.map((c) => `${c.name}: ${columnType(c)};`).join("\n")}
 };
 
@@ -202,15 +210,15 @@ export type ${findManyArgsType} = {
 };
 
 export type ${createArgsType} = {
-  data: Partial<${tableType}>;
+  data: Partial<${modelType}>;
 };
 
 export type ${createManyArgsType} = {
-  data: Partial<${tableType}>[];
+  data: Partial<${modelType}>[];
 };
 
 export type ${updateManyArgsType} = {
-  data: Partial<${tableType}>;
+  data: Partial<${modelType}>;
   where?: ${whereType};
   orderBy?: Runtime.MaybeArray<${orderByType}>;
   limit?: number;
@@ -237,13 +245,13 @@ const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => 
   return components;
 });
 
-function ${parseFunc}(row: Record<string, unknown>): ${tableType} {
+function ${parseFunc}(row: Record<string, unknown>): ${modelType} {
   return {
   ${columns.map((c) => `${c.name}: ${columnParse(c)},`).join("\n")}
   };
 }
 
-function ${serializeFunc}(obj: Partial<${tableType}>): Record<string, SQL.RawValue> {
+function ${serializeFunc}(obj: Partial<${modelType}>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
   for (let key in obj) {
     switch (key) {
@@ -260,12 +268,12 @@ function ${serializeFunc}(obj: Partial<${tableType}>): Record<string, SQL.RawVal
   return result;
 }
 
-${fillCreateData(fillCreateDataFunc, tableType, columns)}
+${fillCreateData(fillCreateDataFunc, modelType, columns)}
 
-${fillUpdateData(fillUpdateDataFunc, tableType, columns)}
+${fillUpdateData(fillUpdateDataFunc, modelType, columns)}
 
 export class ${clientType} extends Runtime.GenericClient {
-  findFirst(args?: ${findFirstArgsType}): ${tableType} | undefined {
+  findFirst(args?: ${findFirstArgsType}): ${modelType} | undefined {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
@@ -275,13 +283,13 @@ export class ${clientType} extends Runtime.GenericClient {
     parts.push(SQL\`LIMIT 1\`);
     if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
     const row = this.$db.get(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
+      SQL\`SELECT \${columns} FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
     );
     if (!row) return undefined;
     return ${parseFunc}(row);
   }
 
-  findMany(args?: ${findManyArgsType}): ${tableType}[] {
+  findMany(args?: ${findManyArgsType}): ${modelType}[] {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
@@ -293,13 +301,13 @@ export class ${clientType} extends Runtime.GenericClient {
       if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
     }
     return this.$db.all(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
+      SQL\`SELECT \${columns} FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
     ).map(${parseFunc});
   }
 
-  create(args: ${createArgsType}): ${tableType} {
+  create(args: ${createArgsType}): ${modelType} {
     const data = ${fillCreateDataFunc}(args.data);
-    const result = this.$db.run(Runtime.makeInsert("${tableType}", [${serializeFunc}(data)]));
+    const result = this.$db.run(Runtime.makeInsert(${lit(schema.tableName)}, [${serializeFunc}(data)]));
     return this.findFirst({ where: { ${
       rowid.name
     }: result.lastInsertRowid } })!;
@@ -307,7 +315,7 @@ export class ${clientType} extends Runtime.GenericClient {
 
   createMany(args: ${createManyArgsType}): Runtime.Database.RunResult {
     const data = args.data.map(${fillCreateDataFunc}).map(${serializeFunc});
-    return this.$db.run(Runtime.makeInsert("${tableType}", data));
+    return this.$db.run(Runtime.makeInsert(${lit(schema.tableName)}, data));
   }
 
   updateMany(args: ${updateManyArgsType}): Runtime.Database.RunResult {
@@ -320,7 +328,7 @@ export class ${clientType} extends Runtime.GenericClient {
       if (args.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
     }
     return this.$db.run(
-      SQL\`\${Runtime.makeUpdate("${tableType}", ${serializeFunc}(data))}\${SQL.join(parts, " ")}\`
+      SQL\`\${Runtime.makeUpdate(${lit(schema.tableName)}, ${serializeFunc}(data))}\${SQL.join(parts, " ")}\`
     );
   }
 
@@ -333,24 +341,24 @@ export class ${clientType} extends Runtime.GenericClient {
       if (args.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
     }
     return this.$db.run(
-      SQL\`DELETE FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
+      SQL\`DELETE FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
     );
   }
 }`;
-  return { name: schema.name, clientType, source };
+  return { name: schema.name, clientName, clientType, source };
 }
 
 export function generateClient(schema: DatabaseSchema): string {
-  const tableInfo = Object.values(schema.tables).map(generateTableClient);
+  const modelInfo = Object.values(schema.models).map(generateModelClient);
   const typeDecls = [
     `$db: Runtime.Database;`,
-    ...tableInfo.map((t) => `${t.name}: ${t.clientType};`),
+    ...modelInfo.map((m) => `${m.clientName}: ${m.clientType};`),
   ];
   const src = `
 import * as Runtime from "@rad/sqlite";
 import { SQL } from "@rad/sqlite";
 
-${tableInfo.map((t) => t.source).join("\n\n")}
+${modelInfo.map((t) => t.source).join("\n\n")}
 
 export type Client = {
   ${typeDecls.join("\n")}
@@ -358,7 +366,7 @@ export type Client = {
 
 export const createClient: Runtime.CreateClient<Client> =
   Runtime.makeCreateClient({
-    ${tableInfo.map((t) => `${t.name}: ${t.clientType},`).join("\n")}
+    ${modelInfo.map((m) => `${m.clientName}: ${m.clientType},`).join("\n")}
   });`;
   return prettier.format(src, { parser: "typescript" });
 }

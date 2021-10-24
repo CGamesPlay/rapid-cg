@@ -1,10 +1,7 @@
-import * as T from "./types.js";
+import _ from "lodash";
+import pluralize from "pluralize";
 
-function clone<T>(base: T, ...newProps: Array<any>): T {
-  const ret = Object.create(Object.getPrototypeOf(base));
-  Object.assign(ret, ...newProps);
-  return ret;
-}
+import * as T from "./types.js";
 
 class ColumnAnyBuilder<DefaultType = never> {
   result: Omit<T.Column, "name">;
@@ -66,17 +63,32 @@ class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   }
 }
 
-class TableBuilder {
-  columns: Record<string, T.Column> = {};
+class ModelBuilder {
+  result: Partial<T.ModelSchema> = { columns: {} };
 
-  build(name: string): T.TableSchema {
-    return Object.assign({}, this, { name }) as any;
+  build(name: string): T.ModelSchema {
+    return Object.assign(
+      { tableName: _.lowerFirst(pluralize(name)) },
+      this.result,
+      { name }
+    ) as any;
+  }
+
+  protected withProperties(input: unknown): this {
+    const ret = Object.create(Object.getPrototypeOf(this));
+    ret.result = {};
+    Object.assign(ret.result, this.result, input);
+    return ret;
+  }
+
+  inTable(tableName: string): this {
+    return this.withProperties({ tableName });
   }
 
   withTimestamps(): this {
-    return clone(this, {
+    return this.withProperties({
       columns: {
-        ...this.columns,
+        ...this.result.columns,
         createdAt: s.date().createdAt(),
         updatedAt: s.date().updatedAt(),
       },
@@ -105,18 +117,18 @@ export const s = {
     return new ColumnUuidBuilder({ type: "uuid" });
   },
 
-  table(columns: Record<string, ColumnAnyBuilder<never>>): TableBuilder {
-    const result = new TableBuilder();
+  model(columns: Record<string, ColumnAnyBuilder<never>>): ModelBuilder {
+    const model = new ModelBuilder();
     for (let name in columns) {
-      result.columns[name] = columns[name].build(name);
+      model.result.columns![name] = columns[name].build(name);
     }
-    return result;
+    return model;
   },
 
-  database(tables: Record<string, TableBuilder>): T.DatabaseSchema {
-    const result: any = { tables: {} as any };
-    for (let name in tables) {
-      result.tables[name] = tables[name].build(name);
+  database(models: Record<string, ModelBuilder>): T.DatabaseSchema {
+    const result: any = { models: {} as any };
+    for (let name in models) {
+      result.models[name] = models[name].build(name);
     }
     return T.DatabaseSchema.parse(result);
   },

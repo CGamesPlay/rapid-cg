@@ -1,5 +1,5 @@
 -- migrate:up
-CREATE TABLE "docs" (
+CREATE TABLE "tbl" (
   "id" TEXT PRIMARY KEY NOT NULL,
   "createdAt" TEXT NOT NULL,
   "updatedAt" TEXT NOT NULL,
@@ -8,4 +8,4 @@ CREATE TABLE "docs" (
 );
 
 -- migrate:down
-DROP TABLE "docs";
+DROP TABLE "tbl";

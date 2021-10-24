@@ -1,4 +1,4 @@
-import { s, DatabaseSchema, TableSchema, Column } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column } from "@rad/schema";
 
 function id(val: string) {
   return `"${val.replace(/"/g, '""')}"`;
@@ -42,15 +42,15 @@ function columnDefinition(c: Column): string {
     .join(" ");
 }
 
-function generateTableCopyMigration(
-  from: TableSchema,
-  to: TableSchema
+function generateModelCopyMigration(
+  from: ModelSchema,
+  to: ModelSchema
 ): string {
-  const transferTable = `transfer${to.name}`;
+  const transferModel = `transfer${to.tableName}`;
   let lines: string[] = [];
   lines = lines.concat([
     `BEGIN EXCLUSIVE TRANSACTION;`,
-    `CREATE TABLE ${id(transferTable)} (`,
+    `CREATE TABLE ${id(transferModel)} (`,
     Object.values(to.columns)
       .map((c) => `  ${columnDefinition(c)}`)
       .join(",\n"),
@@ -63,19 +63,19 @@ function generateTableCopyMigration(
     }
   }
   lines = lines.concat([
-    `INSERT INTO ${transferTable} ( ${sharedColumns.map(id).join(", ")} )`,
+    `INSERT INTO ${transferModel} ( ${sharedColumns.map(id).join(", ")} )`,
     `  SELECT ${sharedColumns.map(id).join(", ")}`,
-    `  FROM ${id(from.name)};`,
-    `DROP TABLE ${from.name};`,
-    `ALTER TABLE ${transferTable} RENAME TO ${to.name};`,
+    `  FROM ${id(from.tableName)};`,
+    `DROP TABLE ${from.tableName};`,
+    `ALTER TABLE ${transferModel} RENAME TO ${to.tableName};`,
     `COMMIT TRANSACTION;`,
   ]);
   return lines.join("\n");
 }
 
-function generateTableMigration(
-  from: TableSchema | undefined,
-  to: TableSchema | undefined
+function generateModelMigration(
+  from: ModelSchema | undefined,
+  to: ModelSchema | undefined
 ): string {
   /* istanbul ignore if */
   if (from === undefined && to === undefined) return "";
@@ -90,17 +90,17 @@ function generateTableMigration(
       ) {
         continue;
       } else if (to.columns[column]) {
-        return generateTableCopyMigration(from, to);
+        return generateModelCopyMigration(from, to);
       } else {
         statements.push(
-          `ALTER TABLE ${id(from.name)} DROP COLUMN ${id(column)};`
+          `ALTER TABLE ${id(from.tableName)} DROP COLUMN ${id(column)};`
         );
       }
     }
     for (let column in to.columns) {
       if (!(column in from.columns)) {
         statements.push(
-          `ALTER TABLE ${id(from.name)} ADD COLUMN ${columnDefinition(
+          `ALTER TABLE ${id(from.tableName)} ADD COLUMN ${columnDefinition(
             to.columns[column]
           )};`
         );
@@ -109,14 +109,14 @@ function generateTableMigration(
     return statements.join("\n\n");
   } else if (to !== undefined) {
     return [
-      `CREATE TABLE ${id(to.name)} (`,
+      `CREATE TABLE ${id(to.tableName)} (`,
       Object.values(to.columns)
         .map((c) => `  ${columnDefinition(c)}`)
         .join(",\n"),
       `);`,
     ].join("\n");
   } else if (from !== undefined) {
-    return `DROP TABLE ${id(from.name)};`;
+    return `DROP TABLE ${id(from.tableName)};`;
   } else {
     /* istanbul ignore next */
     return "";
@@ -126,15 +126,21 @@ function generateTableMigration(
 type MigrationParams = { from: DatabaseSchema; to: DatabaseSchema };
 
 export function generateMigration({ from, to }: MigrationParams): string {
-  const components: string[] = [];
-  for (let table in from.tables) {
-    components.push(
-      generateTableMigration(from.tables[table], to.tables[table])
-    );
+  const fromTables: Record<string, ModelSchema> = {};
+  const toTables: Record<string, ModelSchema> = {};
+  for (let model in from.models) {
+    fromTables[from.models[model].tableName] = from.models[model];
   }
-  for (let table in to.tables) {
-    if (!(table in from.tables)) {
-      components.push(generateTableMigration(undefined, to.tables[table]));
+  for (let model in to.models) {
+    toTables[to.models[model].tableName] = to.models[model];
+  }
+  const components: string[] = [];
+  for (let model in fromTables) {
+    components.push(generateModelMigration(fromTables[model], toTables[model]));
+  }
+  for (let model in toTables) {
+    if (!(model in fromTables)) {
+      components.push(generateModelMigration(undefined, toTables[model]));
     }
   }
   return components.filter((c) => c).join("\n\n");

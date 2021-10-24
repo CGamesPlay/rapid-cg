@@ -9,11 +9,11 @@ describe("introspectDatabase", () => {
   beforeAll(() => {
     db = new Database(":memory:");
     db.run(SQL`
-      CREATE TABLE "basic" (
+      CREATE TABLE "basics" (
         intPrimaryKey INTEGER PRIMARY KEY NOT NULL
       );`);
     db.run(SQL`
-      CREATE TABLE "uuid" (
+      CREATE TABLE "uuids" (
         id TEXT PRIMARY KEY NOT NULL
       );`);
     db.run(SQL`
@@ -29,21 +29,21 @@ describe("introspectDatabase", () => {
 
   it("works", () => {
     const schema = introspectDatabase(db);
-    const migration = generateMigration({
-      from: schema,
-      to: s.database({
-        basic: s.table({ intPrimaryKey: s.integer().primary() }),
-        uuid: s.table({ id: s.uuid().primary().autogenerate() }),
-        tbl: s.table({
-          id: s.integer().autoincrement(),
-          uuid: s.uuid().unique().autogenerate(),
-          createdAt: s.date().createdAt(),
-          updatedAt: s.date().updatedAt(),
-          n: s.integer().nullable(),
-          label: s.text(),
-        }),
-      }),
-    });
-    expect(migration).toEqual("");
+    expect(schema).toEqual(
+      s.database({
+        Basic: s.model({ intPrimaryKey: s.integer().primary() }),
+        Uuid: s.model({ id: s.text().primary() }),
+        Tbl: s
+          .model({
+            id: s.integer().autoincrement(),
+            uuid: s.text().unique(),
+            createdAt: s.text(),
+            updatedAt: s.text(),
+            n: s.integer().nullable(),
+            label: s.text(),
+          })
+          .inTable("tbl"),
+      })
+    );
   });
 });

@@ -2,9 +2,9 @@ import { s } from "./schema.js";
 
 describe("Database", () => {
   it("creates a basic schema", () => {
-    expect(() =>
+    expect(
       s.database({
-        todos: s.table({
+        Todo: s.model({
           id: s.uuid().primary().autogenerate(),
           createdAt: s.date().createdAt(),
           updatedAt: s.date().updatedAt(),
@@ -12,13 +12,27 @@ describe("Database", () => {
           extra: s.text(),
         }),
       })
-    ).not.toThrow();
+    ).toEqual({
+      models: {
+        Todo: {
+          columns: {
+            id: expect.anything(),
+            createdAt: expect.anything(),
+            updatedAt: expect.anything(),
+            text: expect.anything(),
+            extra: expect.anything(),
+          },
+          name: "Todo",
+          tableName: "todos",
+        },
+      },
+    });
   });
 
   it("validates identifiers", () => {
     expect(() =>
       s.database({
-        "test table": s.table({
+        "test model": s.model({
           "test column": s.text(),
         }),
       })
@@ -26,10 +40,10 @@ describe("Database", () => {
       "[
         {
           \\"code\\": \\"custom\\",
-          \\"message\\": \\"table name cannot be used as an identifier \\",
+          \\"message\\": \\"model name cannot be used as an identifier \\",
           \\"path\\": [
-            \\"tables\\",
-            \\"test table\\",
+            \\"models\\",
+            \\"test model\\",
             \\"name\\"
           ]
         },
@@ -37,8 +51,8 @@ describe("Database", () => {
           \\"code\\": \\"custom\\",
           \\"message\\": \\"column name cannot be used as an identifier \\",
           \\"path\\": [
-            \\"tables\\",
-            \\"test table\\",
+            \\"models\\",
+            \\"test model\\",
             \\"columns\\",
             \\"test column\\",
             \\"name\\"
@@ -49,15 +63,20 @@ describe("Database", () => {
   });
 });
 
-describe("TableBuilder", () => {
+describe("ModelBuilder", () => {
   it("can add timestamps", () => {
     expect(() =>
-      s
-        .table({
-          id: s.uuid().primary(),
-        })
-        .withTimestamps()
-        .build("tbl")
+      s.model({ id: s.uuid().primary() }).withTimestamps().build("tbl")
     ).not.toThrow();
+  });
+
+  it("can specify a table name", () => {
+    expect(
+      s.model({ id: s.uuid().primary() }).inTable("anotherTable").build("tbl")
+    ).toEqual({
+      columns: expect.anything(),
+      name: "tbl",
+      tableName: "anotherTable",
+    });
   });
 });

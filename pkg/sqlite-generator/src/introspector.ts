@@ -1,3 +1,5 @@
+import _ from "lodash";
+import pluralize from "pluralize";
 import { s, DatabaseSchema } from "@rad/schema";
 import { Database, SQL } from "@rad/sqlite";
 
@@ -5,7 +7,7 @@ export function introspectDatabase(db: Database): DatabaseSchema {
   const tableInfo = db.all<{ name: string; sql: string }>(
     SQL`SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT IN ( 'sqlite_sequence', 'schema_migrations' )`
   );
-  const tables: Record<string, any> = {};
+  const models: Record<string, any> = {};
   tableInfo.forEach((t) => {
     const columns: Record<string, any> = {};
     const columnSql = t.sql
@@ -48,7 +50,8 @@ export function introspectDatabase(db: Database): DatabaseSchema {
         if (opts.indexOf("NOT NULL") === -1) col = col.nullable();
         columns[name] = col;
       });
-    tables[t.name] = s.table(columns);
+    const name = _.upperFirst(pluralize.singular(t.name));
+    models[name] = s.model(columns).inTable(t.name);
   });
-  return s.database(tables);
+  return s.database(models);
 }

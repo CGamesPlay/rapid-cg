@@ -1,7 +1,7 @@
 import * as Runtime from "@rad/sqlite";
 import { SQL } from "@rad/sqlite";
 
-export type docs = {
+export type Doc = {
   rowid: number | bigint;
   id: string;
   createdAt: Date;
@@ -10,18 +10,18 @@ export type docs = {
   extra: unknown;
 };
 
-export type docsWhere = {
+export type WhereDoc = {
   rowid?: Runtime.WhereNumber;
   id?: Runtime.WhereUuid;
   createdAt?: Runtime.WhereDate;
   updatedAt?: Runtime.WhereDate;
   content?: Runtime.WhereString;
-  AND?: Runtime.MaybeArray<docsWhere>;
-  OR?: Runtime.MaybeArray<docsWhere>;
-  NOT?: Runtime.MaybeArray<docsWhere>;
+  AND?: Runtime.MaybeArray<WhereDoc>;
+  OR?: Runtime.MaybeArray<WhereDoc>;
+  NOT?: Runtime.MaybeArray<WhereDoc>;
 };
 
-export type docsOrderBy = {
+export type DocOrderBy = {
   rowid?: Runtime.SortOrder;
   id?: Runtime.SortOrder;
   createdAt?: Runtime.SortOrder;
@@ -29,43 +29,43 @@ export type docsOrderBy = {
   content?: Runtime.SortOrder;
 };
 
-export type docsFindFirstArgs = {
-  where?: docsWhere;
-  orderBy?: Runtime.MaybeArray<docsOrderBy>;
+export type FindFirstDocArgs = {
+  where?: WhereDoc;
+  orderBy?: Runtime.MaybeArray<DocOrderBy>;
   offset?: number;
 };
 
-export type docsFindManyArgs = {
-  where?: docsWhere;
-  orderBy?: Runtime.MaybeArray<docsOrderBy>;
+export type FindManyDocArgs = {
+  where?: WhereDoc;
+  orderBy?: Runtime.MaybeArray<DocOrderBy>;
   limit?: number;
   offset?: number;
 };
 
-export type docsCreateArgs = {
-  data: Partial<docs>;
+export type CreateDocArgs = {
+  data: Partial<Doc>;
 };
 
-export type docsCreateManyArgs = {
-  data: Partial<docs>[];
+export type CreateManyDocArgs = {
+  data: Partial<Doc>[];
 };
 
-export type docsUpdateManyArgs = {
-  data: Partial<docs>;
-  where?: docsWhere;
-  orderBy?: Runtime.MaybeArray<docsOrderBy>;
+export type UpdateManyDocArgs = {
+  data: Partial<Doc>;
+  where?: WhereDoc;
+  orderBy?: Runtime.MaybeArray<DocOrderBy>;
   limit?: number;
   offset?: number;
 };
 
-export type docsDeleteManyArgs = {
-  where?: docsWhere;
-  orderBy?: Runtime.MaybeArray<docsOrderBy>;
+export type DeleteManyDocArgs = {
+  where?: WhereDoc;
+  orderBy?: Runtime.MaybeArray<DocOrderBy>;
   limit?: number;
   offset?: number;
 };
 
-const docsFormatWhere = Runtime.makeWhereChainable((clause: docsWhere) => {
+const formatWhereDoc = Runtime.makeWhereChainable((clause: WhereDoc) => {
   const components: SQL.Template[] = [];
   if (clause.rowid !== undefined) {
     components.push(Runtime.makeWhereNumber("rowid", clause.rowid));
@@ -85,7 +85,7 @@ const docsFormatWhere = Runtime.makeWhereChainable((clause: docsWhere) => {
   return components;
 });
 
-function docsParse(row: Record<string, unknown>): docs {
+function parseDoc(row: Record<string, unknown>): Doc {
   return {
     rowid: row.rowid as number | bigint,
     id: row.id as string,
@@ -96,7 +96,7 @@ function docsParse(row: Record<string, unknown>): docs {
   };
 }
 
-function docsSerialize(obj: Partial<docs>): Record<string, SQL.RawValue> {
+function serializeDoc(obj: Partial<Doc>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
   for (let key in obj) {
     switch (key) {
@@ -126,7 +126,7 @@ function docsSerialize(obj: Partial<docs>): Record<string, SQL.RawValue> {
   return result;
 }
 
-function docsFillCreateData(data: Partial<docs>): Partial<docs> {
+function fillDocCreateData(data: Partial<Doc>): Partial<Doc> {
   return {
     id: Runtime.randomUuid(),
     createdAt: new Date(),
@@ -136,12 +136,12 @@ function docsFillCreateData(data: Partial<docs>): Partial<docs> {
   };
 }
 
-function docsFillUpdateData(data: Partial<docs>): Partial<docs> {
+function fillDocUpdateData(data: Partial<Doc>): Partial<Doc> {
   return { updatedAt: new Date(), ...data };
 }
 
-export class docsClient extends Runtime.GenericClient {
-  findFirst(args?: docsFindFirstArgs): docs | undefined {
+export class DocClient extends Runtime.GenericClient {
+  findFirst(args?: FindFirstDocArgs): Doc | undefined {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -155,19 +155,19 @@ export class docsClient extends Runtime.GenericClient {
     );
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
     if (args?.orderBy !== undefined)
       parts.push(Runtime.makeOrderBy(args.orderBy));
     parts.push(SQL`LIMIT 1`);
     if (args?.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
     const row = this.$db.get(
-      SQL`SELECT ${columns} FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`
+      SQL`SELECT ${columns} FROM "tbl"${SQL.join(parts, " ")}`
     );
     if (!row) return undefined;
-    return docsParse(row);
+    return parseDoc(row);
   }
 
-  findMany(args?: docsFindManyArgs): docs[] {
+  findMany(args?: FindManyDocArgs): Doc[] {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -181,7 +181,7 @@ export class docsClient extends Runtime.GenericClient {
     );
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
     if (args?.orderBy !== undefined)
       parts.push(Runtime.makeOrderBy(args.orderBy));
     if (args?.limit !== undefined || args?.offset !== undefined) {
@@ -189,62 +189,60 @@ export class docsClient extends Runtime.GenericClient {
       if (args?.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
     }
     return this.$db
-      .all(SQL`SELECT ${columns} FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`)
-      .map(docsParse);
+      .all(SQL`SELECT ${columns} FROM "tbl"${SQL.join(parts, " ")}`)
+      .map(parseDoc);
   }
 
-  create(args: docsCreateArgs): docs {
-    const data = docsFillCreateData(args.data);
+  create(args: CreateDocArgs): Doc {
+    const data = fillDocCreateData(args.data);
     const result = this.$db.run(
-      Runtime.makeInsert("docs", [docsSerialize(data)])
+      Runtime.makeInsert("tbl", [serializeDoc(data)])
     );
     return this.findFirst({ where: { rowid: result.lastInsertRowid } })!;
   }
 
-  createMany(args: docsCreateManyArgs): Runtime.Database.RunResult {
-    const data = args.data.map(docsFillCreateData).map(docsSerialize);
-    return this.$db.run(Runtime.makeInsert("docs", data));
+  createMany(args: CreateManyDocArgs): Runtime.Database.RunResult {
+    const data = args.data.map(fillDocCreateData).map(serializeDoc);
+    return this.$db.run(Runtime.makeInsert("tbl", data));
   }
 
-  updateMany(args: docsUpdateManyArgs): Runtime.Database.RunResult {
-    const data = docsFillUpdateData(args.data);
+  updateMany(args: UpdateManyDocArgs): Runtime.Database.RunResult {
+    const data = fillDocUpdateData(args.data);
     const parts: SQL.Template[] = [SQL.empty];
     if (args.where !== undefined)
-      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
     if (args.limit !== undefined || args.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
       parts.push(SQL`LIMIT ${args.limit ?? -1}`);
       if (args.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
     }
     return this.$db.run(
-      SQL`${Runtime.makeUpdate("docs", docsSerialize(data))}${SQL.join(
+      SQL`${Runtime.makeUpdate("tbl", serializeDoc(data))}${SQL.join(
         parts,
         " "
       )}`
     );
   }
 
-  deleteMany(args?: docsDeleteManyArgs): Runtime.Database.RunResult {
+  deleteMany(args?: DeleteManyDocArgs): Runtime.Database.RunResult {
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
     if (args?.limit !== undefined || args?.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
       parts.push(SQL`LIMIT ${args.limit ?? -1}`);
       if (args.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
     }
-    return this.$db.run(
-      SQL`DELETE FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`
-    );
+    return this.$db.run(SQL`DELETE FROM "tbl"${SQL.join(parts, " ")}`);
   }
 }
 
 export type Client = {
   $db: Runtime.Database;
-  docs: docsClient;
+  docs: DocClient;
 };
 
 export const createClient: Runtime.CreateClient<Client> =
   Runtime.makeCreateClient({
-    docs: docsClient,
+    docs: DocClient,
   });
