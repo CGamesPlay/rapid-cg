@@ -1,18 +1,31 @@
+import * as fs from "fs";
+import * as path from "path";
 import { SQL, randomUuid } from "@rad/sqlite";
 
 import { createClient, Client } from "./client.generated.js";
 
 const testStarted = new Date(2000, 0);
 
+function migrate(client: Client) {
+  const dir = path.join(__dirname, "../db/migrations");
+  const files = fs.readdirSync(dir);
+  files.forEach((f) => {
+    const sql = fs.readFileSync(path.join(dir, f), "utf-8");
+    expect(sql).toMatch(/^-- migrate:up\n/m);
+    expect(sql).toMatch("\n-- migrate:down\n");
+    const endOfMigration = sql.indexOf("\n-- migrate:down\n");
+    const upMigration = sql.substr(0, endOfMigration);
+    client.$db.exec(upMigration);
+  });
+}
+
 describe("generated client", () => {
   let client: Client;
   beforeAll(() => {
     client = createClient(":memory:");
+    migrate(client);
     client.$db.run(
-      SQL`CREATE TABLE docs ( id TEXT PRIMARY KEY, createdAt TEXT, updatedAt TEXT, content TEXT, extra TEXT )`
-    );
-    client.$db.run(
-      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc', NULL )`
+      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc', '{}' )`
     );
   });
 
@@ -21,7 +34,11 @@ describe("generated client", () => {
   });
 
   afterEach(() => {
-    client.$db.run(SQL`ROLLBACK`);
+    try {
+      client.$db.run(SQL`ROLLBACK`);
+    } catch (e) {
+      // error - no transaction is in progress
+    }
   });
 
   describe("findFirst", () => {
@@ -33,7 +50,7 @@ describe("generated client", () => {
         createdAt: testStarted,
         updatedAt: testStarted,
         content: "first doc",
-        extra: null,
+        extra: {},
       });
       const foundAgain = client.docs.findFirst({ where: obj });
       expect(foundAgain).toEqual(obj);
@@ -54,7 +71,7 @@ describe("generated client", () => {
           createdAt: testStarted,
           updatedAt: testStarted,
           content: "first doc",
-          extra: null,
+          extra: {},
         },
       ]);
     });
@@ -63,7 +80,7 @@ describe("generated client", () => {
   describe("create", () => {
     it("adds the item", () => {
       const obj = client.docs.create({
-        data: { rowid: 10, content: "second", extra: null },
+        data: { rowid: 10, content: "second", extra: { author: "me" } },
       });
       expect(obj).toEqual({
         rowid: 10,
@@ -71,7 +88,7 @@ describe("generated client", () => {
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
         content: "second",
-        extra: null,
+        extra: { author: "me" },
       });
       const foundAgain = client.docs.findFirst({ where: { id: obj.id } });
       expect(foundAgain).toEqual(obj);
