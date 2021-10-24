@@ -21,13 +21,23 @@ export type docsWhere = {
   NOT?: docsWhere;
 };
 
+export type docsOrderBy = {
+  rowid?: Runtime.SortOrder;
+  id?: Runtime.SortOrder;
+  createdAt?: Runtime.SortOrder;
+  updatedAt?: Runtime.SortOrder;
+  content?: Runtime.SortOrder;
+};
+
 export type docsFindFirstArgs = {
   where?: docsWhere;
+  orderBy?: Runtime.MaybeArray<docsOrderBy>;
   offset?: number;
 };
 
 export type docsFindManyArgs = {
   where?: docsWhere;
+  orderBy?: Runtime.MaybeArray<docsOrderBy>;
   limit?: number;
   offset?: number;
 };
@@ -43,12 +53,14 @@ export type docsCreateManyArgs = {
 export type docsUpdateManyArgs = {
   data: Partial<docs>;
   where?: docsWhere;
+  orderBy?: Runtime.MaybeArray<docsOrderBy>;
   limit?: number;
   offset?: number;
 };
 
 export type docsDeleteManyArgs = {
   where?: docsWhere;
+  orderBy?: Runtime.MaybeArray<docsOrderBy>;
   limit?: number;
   offset?: number;
 };
@@ -141,11 +153,15 @@ export class docsClient extends Runtime.GenericClient {
       ],
       ", "
     );
-    const where = docsFormatWhere(args?.where);
+    const parts: SQL.Template[] = [SQL.empty];
+    if (args?.where !== undefined)
+      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+    if (args?.orderBy !== undefined)
+      parts.push(Runtime.makeOrderBy(args.orderBy));
+    parts.push(SQL`LIMIT 1`);
+    if (args?.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
     const row = this.$db.get(
-      SQL`SELECT ${columns} FROM ${SQL.id(
-        "docs"
-      )} WHERE ${where} LIMIT 1 OFFSET ${args?.offset ?? 0}`
+      SQL`SELECT ${columns} FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`
     );
     if (!row) return undefined;
     return docsParse(row);
@@ -163,13 +179,17 @@ export class docsClient extends Runtime.GenericClient {
       ],
       ", "
     );
-    const where = docsFormatWhere(args?.where);
+    const parts: SQL.Template[] = [SQL.empty];
+    if (args?.where !== undefined)
+      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+    if (args?.orderBy !== undefined)
+      parts.push(Runtime.makeOrderBy(args.orderBy));
+    if (args?.limit !== undefined || args?.offset !== undefined) {
+      parts.push(SQL`LIMIT ${args?.limit ?? -1}`);
+      if (args?.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
+    }
     return this.$db
-      .all(
-        SQL`SELECT ${columns} FROM ${SQL.id("docs")} WHERE ${where} LIMIT ${
-          args?.limit ?? -1
-        } OFFSET ${args?.offset ?? 0}`
-      )
+      .all(SQL`SELECT ${columns} FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`)
       .map(docsParse);
   }
 
@@ -188,31 +208,33 @@ export class docsClient extends Runtime.GenericClient {
 
   updateMany(args: docsUpdateManyArgs): Runtime.Database.RunResult {
     const data = docsFillUpdateData(args.data);
-    const where = docsFormatWhere(args.where);
-    const limit =
-      (args.limit ?? -1) < 0 && (args.offset ?? 0) <= 0
-        ? SQL``
-        : SQL` ORDER BY "rowid" LIMIT ${args.limit ?? -1} OFFSET ${
-            args.offset ?? 0
-          }`;
+    const parts: SQL.Template[] = [SQL.empty];
+    if (args.where !== undefined)
+      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+    if (args.limit !== undefined || args.offset !== undefined) {
+      parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
+      parts.push(SQL`LIMIT ${args.limit ?? -1}`);
+      if (args.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
+    }
     return this.$db.run(
-      SQL`${Runtime.makeUpdate(
-        "docs",
-        docsSerialize(data)
-      )} WHERE ${where}${limit}`
+      SQL`${Runtime.makeUpdate("docs", docsSerialize(data))}${SQL.join(
+        parts,
+        " "
+      )}`
     );
   }
 
   deleteMany(args?: docsDeleteManyArgs): Runtime.Database.RunResult {
-    const where = docsFormatWhere(args?.where);
-    const limit =
-      (args?.limit ?? -1) < 0 && (args?.offset ?? 0) <= 0
-        ? SQL``
-        : SQL` ORDER BY "rowid" LIMIT ${args?.limit ?? -1} OFFSET ${
-            args?.offset ?? 0
-          }`;
+    const parts: SQL.Template[] = [SQL.empty];
+    if (args?.where !== undefined)
+      parts.push(SQL`WHERE ${docsFormatWhere(args.where)}`);
+    if (args?.limit !== undefined || args?.offset !== undefined) {
+      parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
+      parts.push(SQL`LIMIT ${args.limit ?? -1}`);
+      if (args.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
+    }
     return this.$db.run(
-      SQL`DELETE FROM ${SQL.id("docs")} WHERE ${where}${limit}`
+      SQL`DELETE FROM ${SQL.id("docs")}${SQL.join(parts, " ")}`
     );
   }
 }

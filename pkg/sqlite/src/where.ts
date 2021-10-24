@@ -1,4 +1,5 @@
 import SQL from "./tag.js";
+import { MaybeArray } from "./utils.js";
 
 type WhereScalar<T> = {
   equals?: T | null;
@@ -132,9 +133,9 @@ export function makeWhereUuid(column: string, where: WhereUuid): SQL.Template {
 }
 
 export type WhereChainable<T extends WhereChainable<T>> = {
-  AND?: T | T[];
-  OR?: T | T[];
-  NOT?: T | T[];
+  AND?: MaybeArray<T>;
+  OR?: MaybeArray<T>;
+  NOT?: MaybeArray<T>;
 };
 
 export function makeWhereChainable<T extends WhereChainable<T>>(

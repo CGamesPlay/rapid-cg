@@ -146,6 +146,7 @@ function generateTableClient(schema: TableSchema): TableInfo {
   const tableType = schema.name;
   const whereType = `${schema.name}Where`;
   const clientType = `${schema.name}Client`;
+  const orderByType = `${schema.name}OrderBy`;
   const findFirstArgsType = `${schema.name}FindFirstArgs`;
   const findManyArgsType = `${schema.name}FindManyArgs`;
   const createArgsType = `${schema.name}CreateArgs`;
@@ -180,13 +181,22 @@ export type ${whereType} = {
   NOT?: ${whereType};
 };
 
+export type ${orderByType} = {
+  ${columns
+    .filter((c) => c.type !== "json")
+    .map((c) => `${c.name}?: Runtime.SortOrder;`)
+    .join("\n")}
+};
+
 export type ${findFirstArgsType} = {
   where?: ${whereType};
+  orderBy?: Runtime.MaybeArray<${orderByType}>;
   offset?: number;
 };
 
 export type ${findManyArgsType} = {
   where?: ${whereType};
+  orderBy?: Runtime.MaybeArray<${orderByType}>;
   limit?: number;
   offset?: number;
 };
@@ -202,12 +212,14 @@ export type ${createManyArgsType} = {
 export type ${updateManyArgsType} = {
   data: Partial<${tableType}>;
   where?: ${whereType};
+  orderBy?: Runtime.MaybeArray<${orderByType}>;
   limit?: number;
   offset?: number;
 };
 
 export type ${deleteManyArgsType} = {
   where?: ${whereType};
+  orderBy?: Runtime.MaybeArray<${orderByType}>;
   limit?: number;
   offset?: number;
 };
@@ -257,9 +269,13 @@ export class ${clientType} extends Runtime.GenericClient {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
-    const where = ${formatWhereFunc}(args?.where);
+    const parts: SQL.Template[] = [ SQL.empty ];
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.orderBy !== undefined) parts.push(Runtime.makeOrderBy(args.orderBy));
+    parts.push(SQL\`LIMIT 1\`);
+    if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
     const row = this.$db.get(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT 1 OFFSET \${args?.offset ?? 0}\`
+      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
     );
     if (!row) return undefined;
     return ${parseFunc}(row);
@@ -269,9 +285,15 @@ export class ${clientType} extends Runtime.GenericClient {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
-    const where = ${formatWhereFunc}(args?.where);
+    const parts: SQL.Template[] = [ SQL.empty ];
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.orderBy !== undefined) parts.push(Runtime.makeOrderBy(args.orderBy));
+    if (args?.limit !== undefined || args?.offset !== undefined) {
+      parts.push(SQL\`LIMIT \${args?.limit ?? -1}\`);
+      if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
+    }
     return this.$db.all(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT \${args?.limit ?? -1} OFFSET \${args?.offset ?? 0}\`
+      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
     ).map(${parseFunc});
   }
 
@@ -290,18 +312,28 @@ export class ${clientType} extends Runtime.GenericClient {
 
   updateMany(args: ${updateManyArgsType}): Runtime.Database.RunResult {
     const data = ${fillUpdateDataFunc}(args.data);
-    const where = ${formatWhereFunc}(args.where);
-    const limit = (args.limit ?? -1) < 0 && (args.offset ?? 0) <= 0 ? SQL\`\` : SQL\` ORDER BY ${lit(rowid.name)} LIMIT \${args.limit ?? -1} OFFSET \${args.offset ?? 0}\`
+    const parts: SQL.Template[] = [ SQL.empty ];
+    if (args.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args.limit !== undefined || args.offset !== undefined) {
+      parts.push(Runtime.makeOrderBy(args.orderBy ?? { ${rowid.name}: "asc" }));
+      parts.push(SQL\`LIMIT \${args.limit ?? -1}\`);
+      if (args.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
+    }
     return this.$db.run(
-      SQL\`\${Runtime.makeUpdate("${tableType}", ${serializeFunc}(data))} WHERE \${where}\${limit}\`
+      SQL\`\${Runtime.makeUpdate("${tableType}", ${serializeFunc}(data))}\${SQL.join(parts, " ")}\`
     );
   }
 
   deleteMany(args?: ${deleteManyArgsType}): Runtime.Database.RunResult {
-    const where = ${formatWhereFunc}(args?.where);
-    const limit = (args?.limit ?? -1) < 0 && (args?.offset ?? 0) <= 0 ? SQL\`\` : SQL\` ORDER BY ${lit(rowid.name)} LIMIT \${args?.limit ?? -1} OFFSET \${args?.offset ?? 0}\`
+    const parts: SQL.Template[] = [ SQL.empty ];
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.limit !== undefined || args?.offset !== undefined) {
+      parts.push(Runtime.makeOrderBy(args.orderBy ?? { ${rowid.name}: "asc" }));
+      parts.push(SQL\`LIMIT \${args.limit ?? -1}\`);
+      if (args.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
+    }
     return this.$db.run(
-      SQL\`DELETE FROM \${SQL.id("${tableType}")} WHERE \${where}\${limit}\`
+      SQL\`DELETE FROM \${SQL.id("${tableType}")}\${SQL.join(parts, " ")}\`
     );
   }
 }`;

@@ -68,6 +68,12 @@ describe("generated client", () => {
       const obj = client.docs.findFirst({ where: { content: null } });
       expect(obj).toEqual(undefined);
     });
+    it("supports orderBy", () => {
+      const obj = client.docs.findFirst({ orderBy: { content: "desc" } });
+      expect(obj).toMatchObject({
+        content: "doc 9",
+      });
+    });
     it("supports offset", () => {
       const row = client.docs.findFirst({ offset: 2 });
       expect(row).toMatchObject({ rowid: 3 });
@@ -86,6 +92,13 @@ describe("generated client", () => {
         content: "doc 1",
         extra: {},
       });
+    });
+    it("supports orderBy", () => {
+      const rows = client.docs.findMany({
+        orderBy: { content: "desc" },
+        limit: 2,
+      });
+      expect(rows).toMatchObject([{ content: "doc 9" }, { content: "doc 8" }]);
     });
     it("supports limit and offset", () => {
       const rows = client.docs.findMany({ limit: 2, offset: 2 });
