@@ -24,9 +24,17 @@ describe("generated client", () => {
   beforeAll(() => {
     client = createClient(":memory:");
     migrate(client);
-    client.$db.run(
-      SQL`INSERT INTO docs VALUES ( ${randomUuid()}, ${testStarted.toISOString()}, ${testStarted.toISOString()}, 'first doc', '{}' )`
-    );
+
+    for (let i = 0; i < 10; i++) {
+      client.docs.create({
+        data: {
+          rowid: i + 1,
+          createdAt: testStarted,
+          updatedAt: testStarted,
+          content: `doc ${i + 1}`,
+        },
+      });
+    }
   });
 
   beforeEach(() => {
@@ -42,16 +50,17 @@ describe("generated client", () => {
   });
 
   describe("findFirst", () => {
-    it("returns results", () => {
-      const obj = client.docs.findFirst({ where: { content: { not: null } } });
+    it("returns a result", () => {
+      const obj = client.docs.findFirst();
       expect(obj).toEqual({
         rowid: expect.any(Number),
         id: expect.any(String),
         createdAt: testStarted,
         updatedAt: testStarted,
-        content: "first doc",
+        content: "doc 1",
         extra: {},
       });
+      // Test a fully-specified where condition
       const foundAgain = client.docs.findFirst({ where: obj });
       expect(foundAgain).toEqual(obj);
     });
@@ -59,31 +68,38 @@ describe("generated client", () => {
       const obj = client.docs.findFirst({ where: { content: null } });
       expect(obj).toEqual(undefined);
     });
+    it("supports offset", () => {
+      const row = client.docs.findFirst({ offset: 2 });
+      expect(row).toMatchObject({ rowid: 3 });
+    });
   });
 
   describe("findMany", () => {
     it("returns results", () => {
-      const obj = client.docs.findMany();
-      expect(obj).toEqual([
-        {
-          rowid: expect.any(Number),
-          id: expect.any(String),
-          createdAt: testStarted,
-          updatedAt: testStarted,
-          content: "first doc",
-          extra: {},
-        },
-      ]);
+      const rows = client.docs.findMany();
+      expect(rows).toHaveLength(10);
+      expect(rows[0]).toEqual({
+        rowid: expect.any(Number),
+        id: expect.any(String),
+        createdAt: testStarted,
+        updatedAt: testStarted,
+        content: "doc 1",
+        extra: {},
+      });
+    });
+    it("supports limit and offset", () => {
+      const rows = client.docs.findMany({ limit: 2, offset: 2 });
+      expect(rows).toMatchObject([{ rowid: 3 }, { rowid: 4 }]);
     });
   });
 
   describe("create", () => {
     it("adds the item", () => {
       const obj = client.docs.create({
-        data: { rowid: 10, content: "second", extra: { author: "me" } },
+        data: { content: "second", extra: { author: "me" } },
       });
       expect(obj).toEqual({
-        rowid: 10,
+        rowid: expect.any(Number),
         id: expect.any(String),
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
@@ -98,15 +114,13 @@ describe("generated client", () => {
   describe("createMany", () => {
     it("adds the items", () => {
       const obj = client.docs.createMany({
-        data: [{ content: "second" }, { content: "third" }],
+        data: [{ content: "add 1" }, { content: "add 2" }],
       });
       expect(obj.changes).toEqual(2);
-      const all = client.docs.findMany({});
-      expect(all).toMatchObject([
-        { content: "first doc", createdAt: expect.any(Date) },
-        { content: "second" },
-        { content: "third" },
-      ]);
+      const all = client.docs.findMany({
+        where: { content: { in: ["add 1", "add 2"] } },
+      });
+      expect(all).toMatchObject([{ content: "add 1" }, { content: "add 2" }]);
     });
   });
 
@@ -114,18 +128,25 @@ describe("generated client", () => {
     it("updates the items", () => {
       const obj = client.docs.updateMany({
         data: { content: "updated content", extra: { author: "me" } },
-        where: { content: "first doc" },
+        where: { rowid: 1 },
       });
       expect(obj.changes).toEqual(1);
-      const refreshed = client.docs.findFirst()!;
+      const refreshed = client.docs.findFirst({ where: { rowid: 1 } })!;
       expect(refreshed.createdAt).toEqual(testStarted);
       expect(refreshed.updatedAt).not.toEqual(testStarted);
       expect(refreshed.extra).toEqual({ author: "me" });
     });
-
-    it("respects limits", () => {
+    it("supports limit and offset", () => {
       let ret = client.docs.updateMany({ data: { content: "1st" }, limit: 0 });
       expect(ret.changes).toEqual(0);
+      ret = client.docs.updateMany({
+        data: { content: "changed" },
+        limit: 1,
+        offset: 1,
+      });
+      expect(ret.changes).toEqual(1);
+      const row = client.docs.findFirst({ where: { rowid: 2 } });
+      expect(row).toMatchObject({ content: "changed" });
     });
   });
 
@@ -134,14 +155,17 @@ describe("generated client", () => {
       let ret = client.docs.deleteMany({ where: { rowid: -100 } });
       expect(ret.changes).toEqual(0);
       ret = client.docs.deleteMany({ where: {} });
-      expect(ret.changes).toEqual(1);
-      const all = client.docs.findMany({});
-      expect(all).toEqual([]);
+      expect(ret.changes).toEqual(10);
+      const results = client.docs.findMany({});
+      expect(results).toHaveLength(0);
     });
-
-    it("respects limits", () => {
+    it("supports limit and offset", () => {
       let ret = client.docs.deleteMany({ limit: 0 });
       expect(ret.changes).toEqual(0);
+      ret = client.docs.deleteMany({ limit: 1, offset: 1 });
+      expect(ret.changes).toEqual(1);
+      const row = client.docs.findFirst({ where: { rowid: 2 } });
+      expect(row).toBeUndefined();
     });
   });
 });

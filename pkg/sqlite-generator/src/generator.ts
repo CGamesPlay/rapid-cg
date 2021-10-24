@@ -146,7 +146,8 @@ function generateTableClient(schema: TableSchema): TableInfo {
   const tableType = schema.name;
   const whereType = `${schema.name}Where`;
   const clientType = `${schema.name}Client`;
-  const findArgsType = `${schema.name}FindArgs`;
+  const findFirstArgsType = `${schema.name}FindFirstArgs`;
+  const findManyArgsType = `${schema.name}FindManyArgs`;
   const createArgsType = `${schema.name}CreateArgs`;
   const createManyArgsType = `${schema.name}CreateManyArgs`;
   const updateManyArgsType = `${schema.name}UpdateManyArgs`;
@@ -164,6 +165,7 @@ function generateTableClient(schema: TableSchema): TableInfo {
     rowid = s.integer().primary().build("rowid");
     columns.unshift(rowid);
   }
+  // prettier-ignore
   const source = `export type ${tableType} = {
   ${columns.map((c) => `${c.name}: ${columnType(c)};`).join("\n")}
 };
@@ -178,8 +180,15 @@ export type ${whereType} = {
   NOT?: ${whereType};
 };
 
-export type ${findArgsType} = {
+export type ${findFirstArgsType} = {
   where?: ${whereType};
+  offset?: number;
+};
+
+export type ${findManyArgsType} = {
+  where?: ${whereType};
+  limit?: number;
+  offset?: number;
 };
 
 export type ${createArgsType} = {
@@ -194,11 +203,13 @@ export type ${updateManyArgsType} = {
   data: Partial<${tableType}>;
   where?: ${whereType};
   limit?: number;
+  offset?: number;
 };
 
 export type ${deleteManyArgsType} = {
   where?: ${whereType};
   limit?: number;
+  offset?: number;
 };
 
 const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => {
@@ -242,25 +253,25 @@ ${fillCreateData(fillCreateDataFunc, tableType, columns)}
 ${fillUpdateData(fillUpdateDataFunc, tableType, columns)}
 
 export class ${clientType} extends Runtime.GenericClient {
-  findFirst(args?: ${findArgsType}): ${tableType} | undefined {
+  findFirst(args?: ${findFirstArgsType}): ${tableType} | undefined {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
     const where = ${formatWhereFunc}(args?.where);
     const row = this.$db.get(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT 1\`
+      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT 1 OFFSET \${args?.offset ?? 0}\`
     );
     if (!row) return undefined;
     return ${parseFunc}(row);
   }
 
-  findMany(args?: ${findArgsType}): ${tableType}[] {
+  findMany(args?: ${findManyArgsType}): ${tableType}[] {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
     const where = ${formatWhereFunc}(args?.where);
     return this.$db.all(
-      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where}\`
+      SQL\`SELECT \${columns} FROM \${SQL.id("${tableType}")} WHERE \${where} LIMIT \${args?.limit ?? -1} OFFSET \${args?.offset ?? 0}\`
     ).map(${parseFunc});
   }
 
@@ -280,8 +291,7 @@ export class ${clientType} extends Runtime.GenericClient {
   updateMany(args: ${updateManyArgsType}): Runtime.Database.RunResult {
     const data = ${fillUpdateDataFunc}(args.data);
     const where = ${formatWhereFunc}(args.where);
-    const limit =
-      args.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    const limit = (args.limit ?? -1) < 0 && (args.offset ?? 0) <= 0 ? SQL\`\` : SQL\` ORDER BY ${lit(rowid.name)} LIMIT \${args.limit ?? -1} OFFSET \${args.offset ?? 0}\`
     return this.$db.run(
       SQL\`\${Runtime.makeUpdate("${tableType}", ${serializeFunc}(data))} WHERE \${where}\${limit}\`
     );
@@ -289,8 +299,7 @@ export class ${clientType} extends Runtime.GenericClient {
 
   deleteMany(args?: ${deleteManyArgsType}): Runtime.Database.RunResult {
     const where = ${formatWhereFunc}(args?.where);
-    const limit =
-      args?.limit !== undefined ? SQL\` LIMIT \${args.limit}\` : SQL.empty;
+    const limit = (args?.limit ?? -1) < 0 && (args?.offset ?? 0) <= 0 ? SQL\`\` : SQL\` ORDER BY ${lit(rowid.name)} LIMIT \${args?.limit ?? -1} OFFSET \${args?.offset ?? 0}\`
     return this.$db.run(
       SQL\`DELETE FROM \${SQL.id("${tableType}")} WHERE \${where}\${limit}\`
     );

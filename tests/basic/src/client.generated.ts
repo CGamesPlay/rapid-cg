@@ -21,8 +21,15 @@ export type docsWhere = {
   NOT?: docsWhere;
 };
 
-export type docsFindArgs = {
+export type docsFindFirstArgs = {
   where?: docsWhere;
+  offset?: number;
+};
+
+export type docsFindManyArgs = {
+  where?: docsWhere;
+  limit?: number;
+  offset?: number;
 };
 
 export type docsCreateArgs = {
@@ -37,11 +44,13 @@ export type docsUpdateManyArgs = {
   data: Partial<docs>;
   where?: docsWhere;
   limit?: number;
+  offset?: number;
 };
 
 export type docsDeleteManyArgs = {
   where?: docsWhere;
   limit?: number;
+  offset?: number;
 };
 
 const docsFormatWhere = Runtime.makeWhereChainable((clause: docsWhere) => {
@@ -120,7 +129,7 @@ function docsFillUpdateData(data: Partial<docs>): Partial<docs> {
 }
 
 export class docsClient extends Runtime.GenericClient {
-  findFirst(args?: docsFindArgs): docs | undefined {
+  findFirst(args?: docsFindFirstArgs): docs | undefined {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -134,13 +143,15 @@ export class docsClient extends Runtime.GenericClient {
     );
     const where = docsFormatWhere(args?.where);
     const row = this.$db.get(
-      SQL`SELECT ${columns} FROM ${SQL.id("docs")} WHERE ${where} LIMIT 1`
+      SQL`SELECT ${columns} FROM ${SQL.id(
+        "docs"
+      )} WHERE ${where} LIMIT 1 OFFSET ${args?.offset ?? 0}`
     );
     if (!row) return undefined;
     return docsParse(row);
   }
 
-  findMany(args?: docsFindArgs): docs[] {
+  findMany(args?: docsFindManyArgs): docs[] {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -154,7 +165,11 @@ export class docsClient extends Runtime.GenericClient {
     );
     const where = docsFormatWhere(args?.where);
     return this.$db
-      .all(SQL`SELECT ${columns} FROM ${SQL.id("docs")} WHERE ${where}`)
+      .all(
+        SQL`SELECT ${columns} FROM ${SQL.id("docs")} WHERE ${where} LIMIT ${
+          args?.limit ?? -1
+        } OFFSET ${args?.offset ?? 0}`
+      )
       .map(docsParse);
   }
 
@@ -175,7 +190,11 @@ export class docsClient extends Runtime.GenericClient {
     const data = docsFillUpdateData(args.data);
     const where = docsFormatWhere(args.where);
     const limit =
-      args.limit !== undefined ? SQL` LIMIT ${args.limit}` : SQL.empty;
+      (args.limit ?? -1) < 0 && (args.offset ?? 0) <= 0
+        ? SQL``
+        : SQL` ORDER BY "rowid" LIMIT ${args.limit ?? -1} OFFSET ${
+            args.offset ?? 0
+          }`;
     return this.$db.run(
       SQL`${Runtime.makeUpdate(
         "docs",
@@ -187,7 +206,11 @@ export class docsClient extends Runtime.GenericClient {
   deleteMany(args?: docsDeleteManyArgs): Runtime.Database.RunResult {
     const where = docsFormatWhere(args?.where);
     const limit =
-      args?.limit !== undefined ? SQL` LIMIT ${args.limit}` : SQL.empty;
+      (args?.limit ?? -1) < 0 && (args?.offset ?? 0) <= 0
+        ? SQL``
+        : SQL` ORDER BY "rowid" LIMIT ${args?.limit ?? -1} OFFSET ${
+            args?.offset ?? 0
+          }`;
     return this.$db.run(
       SQL`DELETE FROM ${SQL.id("docs")} WHERE ${where}${limit}`
     );

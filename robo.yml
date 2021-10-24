@@ -26,8 +26,10 @@ build-tests:
       cd $case
       $root/pkg/cli/dist/cli.js generate
       tsc -b .
-      rm -rf db
+      rm -f db/migrations/*_migration.sql
       $root/pkg/cli/dist/cli.js sqlite migrate -d :memory:
+      # Rename to avoid thrashing the git working copy
+      mv db/migrations/*_migration.sql db/migrations/20211024015819_migration.sql
     ); done
 
 test-full:
