@@ -14,6 +14,39 @@ describe("Database", () => {
       })
     ).not.toThrow();
   });
+
+  it("validates identifiers", () => {
+    expect(() =>
+      s.database({
+        "test table": s.table({
+          "test column": s.text(),
+        }),
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`
+      "[
+        {
+          \\"code\\": \\"custom\\",
+          \\"message\\": \\"table name cannot be used as an identifier \\",
+          \\"path\\": [
+            \\"tables\\",
+            \\"test table\\",
+            \\"name\\"
+          ]
+        },
+        {
+          \\"code\\": \\"custom\\",
+          \\"message\\": \\"column name cannot be used as an identifier \\",
+          \\"path\\": [
+            \\"tables\\",
+            \\"test table\\",
+            \\"columns\\",
+            \\"test column\\",
+            \\"name\\"
+          ]
+        }
+      ]"
+    `);
+  });
 });
 
 describe("TableBuilder", () => {

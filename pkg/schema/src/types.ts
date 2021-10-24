@@ -1,7 +1,14 @@
 import { z } from "zod";
 
+function validIdentifier(s: string) {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(s)) return false;
+  return true;
+}
+
 export const ColumnAny = z.object({
-  name: z.string(),
+  name: z.string().refine(validIdentifier, {
+    message: "column name cannot be used as an identifier ",
+  }),
   unique: z.boolean().optional(),
   nullable: z.boolean().optional(),
 });
@@ -40,7 +47,7 @@ export const ColumnUuid = ColumnAny.extend({
   type: z.literal("uuid"),
   autogenerate: z.boolean().optional(),
   primary: z.boolean().optional(),
-  default: z.string().optional(),
+  default: z.string().uuid().optional(),
 });
 export type ColumnUuid = z.infer<typeof ColumnUuid>;
 
@@ -54,7 +61,9 @@ export const Column = z.union([
 export type Column = z.infer<typeof Column>;
 
 export const TableSchema = z.object({
-  name: z.string(),
+  name: z.string().refine(validIdentifier, {
+    message: "table name cannot be used as an identifier ",
+  }),
   columns: z.record(Column),
 });
 export type TableSchema = z.infer<typeof TableSchema>;
