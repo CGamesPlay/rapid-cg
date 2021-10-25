@@ -14,9 +14,9 @@ class Wrapper<T> {
 }
 type Router<T> = ReturnType<Wrapper<T>["wrapped"]>;
 
-type Context = { client: Types.Client };
+type Context<R> = { client: Types.Client<R> };
 
-export function scaffoldDoc(router: Router<Context>) {
+export function scaffoldDoc<R>(router: Router<Context<R>>) {
   return router
     .query("findFirst", {
       input: Types.FindFirstDocArgs,
@@ -56,6 +56,6 @@ export function scaffoldDoc(router: Router<Context>) {
     });
 }
 
-export function scaffoldDatabase(router: Router<Context>) {
-  return router.merge("docs.", scaffoldDoc(trpc.router()));
+export function scaffoldDatabase<R>(router: Router<Context<R>>) {
+  return router.merge("docs.", scaffoldDoc<R>(router));
 }

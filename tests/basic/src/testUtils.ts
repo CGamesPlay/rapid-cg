@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { SQL } from "@rad/sqlite";
 
-import { createClient, Client } from "./sqlite.generated.js";
+import { createClient, Client } from "./sqlite.js";
 
 function migrate(client: Client) {
   const dir = path.join(__dirname, "../db/migrations");
@@ -19,7 +19,7 @@ function migrate(client: Client) {
 
 export let client: Client;
 beforeAll(() => {
-  client = createClient(":memory:");
+  client = createClient();
   migrate(client);
 });
 

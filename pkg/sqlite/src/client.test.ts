@@ -4,7 +4,7 @@ import SQL from "./tag.js";
 import { Database } from "./driver.js";
 import {
   ClientType,
-  makeCreateClient,
+  createClient,
   makeInsert,
   makeUpdate,
   GenericClient,
@@ -12,18 +12,11 @@ import {
 
 import "./testUtils.js";
 
-describe("makeCreateClient", () => {
+describe("createClient", () => {
   it("works", () => {
-    const createClient = makeCreateClient({
+    const client = createClient(":memory:", undefined, {
       generic: GenericClient,
     });
-    expectType<
-      (
-        filename: string,
-        options?: Database.Options
-      ) => ClientType<{ generic: typeof GenericClient }>
-    >(createClient);
-    const client = createClient(":memory:");
     expect(client).toMatchObject({
       $db: expect.any(Database),
       generic: expect.any(GenericClient),

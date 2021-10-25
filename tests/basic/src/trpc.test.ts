@@ -7,10 +7,8 @@ import { expectType } from "ts-expect";
 import * as Runtime from "@rad/sqlite";
 
 import { client } from "./testUtils.js";
-import { scaffoldDatabase } from "./trpc.generated.js";
-import { Doc } from "./sqlite.generated.js";
-
-export type DatabaseRouter = ReturnType<typeof scaffoldDatabase>;
+import { appRouter, AppRouter } from "./trpc.js";
+import { Doc } from "./sqlite.js";
 
 const globalAny = global as any;
 globalAny.fetch = fetch;
@@ -18,7 +16,7 @@ globalAny.fetch = fetch;
 const testStarted = new Date(2000, 0);
 
 function createClient(port: number) {
-  return createTRPCClient<DatabaseRouter>({
+  return createTRPCClient<AppRouter>({
     url: `http://localhost:${port}`,
   });
 }
@@ -37,7 +35,7 @@ describe("createServer", () => {
     });
 
     const { server: s, listen } = createHTTPServer({
-      router: scaffoldDatabase(trpc.router()),
+      router: appRouter,
       createContext: () => ({ client }),
     });
     server = s;

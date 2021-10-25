@@ -162,8 +162,10 @@ function fillDocUpdateData(data: Partial<Doc>): Partial<Doc> {
   return { updatedAt: new Date(), ...data };
 }
 
-export class DocClient extends Runtime.GenericClient {
-  findFirst(args?: FindFirstDocArgs): Doc | undefined {
+export class DocClient<
+  ModelType = Doc
+> extends Runtime.GenericClient<ModelType> {
+  findFirst(args?: FindFirstDocArgs): ModelType | undefined {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -186,10 +188,10 @@ export class DocClient extends Runtime.GenericClient {
       SQL`SELECT ${columns} FROM "tbl"${SQL.join(parts, " ")}`
     );
     if (!row) return undefined;
-    return parseDoc(row);
+    return this.transform(parseDoc(row));
   }
 
-  findMany(args?: FindManyDocArgs): Doc[] {
+  findMany(args?: FindManyDocArgs): ModelType[] {
     const columns = SQL.join(
       [
         SQL.id("rowid"),
@@ -212,10 +214,10 @@ export class DocClient extends Runtime.GenericClient {
     }
     return this.$db
       .all(SQL`SELECT ${columns} FROM "tbl"${SQL.join(parts, " ")}`)
-      .map(parseDoc);
+      .map((r) => this.transform(parseDoc(r)));
   }
 
-  create(args: CreateDocArgs): Doc {
+  create(args: CreateDocArgs): ModelType {
     const data = fillDocCreateData(args.data);
     const result = this.$db.run(
       Runtime.makeInsert("tbl", [serializeDoc(data)])
@@ -259,12 +261,16 @@ export class DocClient extends Runtime.GenericClient {
   }
 }
 
-export type Client = {
+export type Client<R> = {
   $db: Runtime.Database;
-  docs: DocClient;
+  docs: DocClient<R extends { docs: unknown } ? R["docs"] : Doc>;
 };
 
-export const createClient: Runtime.CreateClient<Client> =
-  Runtime.makeCreateClient({
+export function createClient<R>(
+  filename: string,
+  options?: Runtime.Database.Options
+): Client<R> {
+  return Runtime.createClient(filename, options, {
     docs: DocClient,
   });
+}

@@ -150,6 +150,7 @@ function fillUpdateData(
 
 type ModelInfo = {
   name: string;
+  modelType: string;
   clientType: string;
   clientName: string;
   source: string;
@@ -297,8 +298,8 @@ ${fillCreateData(fillCreateDataFunc, modelType, columns)}
 
 ${fillUpdateData(fillUpdateDataFunc, modelType, columns)}
 
-export class ${clientType} extends Runtime.GenericClient {
-  findFirst(args?: ${findFirstArgsType}): ${modelType} | undefined {
+export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClient<ModelType> {
+  findFirst(args?: ${findFirstArgsType}): ModelType | undefined {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
@@ -311,10 +312,10 @@ export class ${clientType} extends Runtime.GenericClient {
       SQL\`SELECT \${columns} FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
     );
     if (!row) return undefined;
-    return ${parseFunc}(row);
+    return this.transform(${parseFunc}(row));
   }
 
-  findMany(args?: ${findManyArgsType}): ${modelType}[] {
+  findMany(args?: ${findManyArgsType}): ModelType[] {
     const columns = SQL.join([${columns
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
@@ -327,10 +328,10 @@ export class ${clientType} extends Runtime.GenericClient {
     }
     return this.$db.all(
       SQL\`SELECT \${columns} FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
-    ).map(${parseFunc});
+    ).map((r) => this.transform(${parseFunc}(r)));
   }
 
-  create(args: ${createArgsType}): ${modelType} {
+  create(args: ${createArgsType}): ModelType {
     const data = ${fillCreateDataFunc}(args.data);
     const result = this.$db.run(Runtime.makeInsert(${lit(schema.tableName)}, [${serializeFunc}(data)]));
     return this.findFirst({ where: { ${
@@ -370,28 +371,35 @@ export class ${clientType} extends Runtime.GenericClient {
     );
   }
 }`;
-  return { name: schema.name, clientName, clientType, source };
+  return { name: schema.name, modelType, clientName, clientType, source };
 }
 
 export function generateClient(schema: DatabaseSchema): string {
   const modelInfo = Object.values(schema.models).map(generateModelClient);
   const typeDecls = [
-    `$db: Runtime.Database;`,
     ...modelInfo.map((m) => `${m.clientName}: ${m.clientType};`),
   ];
+  // prettier-ignore
   const src = `
 import * as Runtime from "@rad/sqlite";
 import { SQL, z } from "@rad/sqlite";
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 
-export type Client = {
-  ${typeDecls.join("\n")}
+export type Client<R> = {
+  $db: Runtime.Database;
+  ${modelInfo.map((m) =>
+    `${m.clientName}: ${m.clientType}<R extends { "${m.clientName}": unknown } ? R["${m.clientName}"] : ${m.modelType}>;`
+  ).join("\n")}
 };
 
-export const createClient: Runtime.CreateClient<Client> =
-  Runtime.makeCreateClient({
+export function createClient<R>(
+  filename: string,
+  options?: Runtime.Database.Options
+): Client<R> {
+  return Runtime.createClient(filename, options, {
     ${modelInfo.map((m) => `${m.clientName}: ${m.clientType},`).join("\n")}
-  });`;
+  });
+}`;
   return prettier.format(src, { parser: "typescript" });
 }

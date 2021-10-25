@@ -24,7 +24,7 @@ function generateModelServer(schema: ModelSchema): ModelInfo {
   const updateManyArgsType = `UpdateMany${modelType}Args`;
   const deleteManyArgsType = `DeleteMany${modelType}Args`;
   // prettier-ignore
-  const source = `export function ${scaffoldName}(router: Router<Context>) {
+  const source = `export function ${scaffoldName}<R>(router: Router<Context<R>>) {
   return router
     .query("findFirst", {
       input: Types.${findFirstArgsType},
@@ -71,6 +71,7 @@ export function generateServer(
   clientImport: string
 ): string {
   const modelInfo = Object.values(schema.models).map(generateModelServer);
+  // prettier-ignore
   const src = `
 import * as trpc from "@trpc/server";
 
@@ -86,15 +87,15 @@ class Wrapper<T> {
 }
 type Router<T> = ReturnType<Wrapper<T>["wrapped"]>;
 
-type Context = { client: Types.Client };
+type Context<R> = { client: Types.Client<R> };
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 
-export function scaffoldDatabase(router: Router<Context>) {
+export function scaffoldDatabase<R>(router: Router<Context<R>>) {
   return router
-  ${modelInfo
-    .map((m) => `.merge("${m.clientName}.", ${m.scaffoldName}(trpc.router()))`)
-    .join("\n")};
+  ${modelInfo.map((m) =>
+    `.merge("${m.clientName}.", ${m.scaffoldName}<R>(router))`
+  ).join("\n")};
 }`;
   return prettier.format(src, { parser: "typescript" });
 }

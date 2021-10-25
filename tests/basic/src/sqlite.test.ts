@@ -1,7 +1,8 @@
 import { SQL, randomUuid } from "@rad/sqlite";
+import { expectType } from "ts-expect";
 
 import { client } from "./testUtils.js";
-import * as Types from "./sqlite.generated.js";
+import * as Types from "./sqlite.js";
 
 const testStarted = new Date(2000, 0);
 
@@ -140,6 +141,12 @@ describe("generated client", () => {
       // Test a fully-specified where condition
       const foundAgain = client.docs.findFirst({ where: obj });
       expect(foundAgain).toEqual(obj);
+
+      // Test the type refinements
+      const extra = obj!.extra;
+      expectType<{ author?: string }>(extra);
+      // @ts-expect-error ensuring that doc is not any
+      extra.author = 1;
     });
     it("returns undefined", () => {
       const obj = client.docs.findFirst({ where: { content: null } });

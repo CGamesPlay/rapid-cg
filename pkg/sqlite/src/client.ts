@@ -7,23 +7,15 @@ export type ClientType<
   [name in keyof Clients]: InstanceType<Clients[name]>;
 };
 
-export type CreateClient<Client> = (
-  filename: string,
-  options?: Database.Options
-) => Client;
-
-export function makeCreateClient<
-  Clients extends Record<string, new ($db: Database) => unknown>,
-  MainClient = ClientType<Clients>
->(ctors: Clients): CreateClient<MainClient> {
-  return (filename: string, options?: Database.Options) => {
-    const $db = new Database(filename, options);
-    const client: any = { $db };
-    for (let name in ctors) {
-      client[name] = new ctors[name]($db);
-    }
-    return client as MainClient;
-  };
+export function createClient<
+  Clients extends Record<string, new ($db: Database) => unknown>
+>(filename: string, options: Database.Options | undefined, ctors: Clients) {
+  const $db = new Database(filename, options);
+  const client: any = { $db };
+  for (let name in ctors) {
+    client[name] = new ctors[name]($db);
+  }
+  return client as ClientType<Clients>;
 }
 
 export function makeInsert(
@@ -62,6 +54,11 @@ export function makeUpdate(
   return SQL`UPDATE ${SQL.id(table)} SET ${SQL.join(exprs, ", ")}`;
 }
 
-export class GenericClient {
+export class GenericClient<ModelType> {
   constructor(protected $db: Database) {}
+
+  transform(input: unknown): ModelType {
+    // @ts-expect-error this is a helper function to hide the type cast
+    return input;
+  }
 }
