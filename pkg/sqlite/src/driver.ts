@@ -11,15 +11,25 @@ export declare namespace Database {
   type BackupMetadata = BaseDatabase.BackupMetadata;
   type BackupOptions = BaseDatabase.BackupOptions;
   type SqliteError = BaseDatabase.SqliteError;
-  type Statement<
-    BindParameters extends any[] | {} = any[]
-  > = BaseDatabase.Statement<BindParameters>;
+  type Statement<BindParameters extends any[] | {} = any[]> =
+    BaseDatabase.Statement<BindParameters>;
   type ColumnDefinition = BaseDatabase.ColumnDefinition;
   type Transaction = BaseDatabase.Transaction;
   type Database = BaseDatabase.Database;
 }
 
 export class Database extends BaseDatabase {
+  constructor(filename: string, options?: BaseDatabase.Options) {
+    super(filename, options);
+    // better-sqlite3's Database isn't an ES6 class, it's an ES5-style function
+    // with a prototype. There appears to be a lot of inconsistency in how this
+    // gets handled: Safari throws a runtime error, node doesn't. However, a
+    // "safety" check that better-sqlite3 applies causes the function to return
+    // a new object which is not actually an instance of our Database override.
+    // So we get to do this would-be no-op.
+    Object.setPrototypeOf(this, Database.prototype);
+  }
+
   // Execute a query and return information about the execution.
   run(query: SQL.Template): Database.RunResult {
     return this.prepare(query.sql).run(...query.values);

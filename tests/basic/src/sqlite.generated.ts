@@ -120,7 +120,7 @@ function parseDoc(row: Record<string, unknown>): Doc {
 
 function serializeDoc(obj: Partial<Doc>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
-  for (let key in obj) {
+  for (const key in obj) {
     switch (key) {
       case "rowid":
         result[key] = obj[key];

@@ -279,7 +279,7 @@ function ${parseFunc}(row: Record<string, unknown>): ${modelType} {
 
 function ${serializeFunc}(obj: Partial<${modelType}>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
-  for (let key in obj) {
+  for (const key in obj) {
     switch (key) {
       ${columns
         .map(
