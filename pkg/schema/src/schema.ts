@@ -63,9 +63,9 @@ class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
 }
 
 class RelationBuilder {
-  result: Omit<T.Relation, "name">;
+  result: Omit<T.RelationInput, "name">;
 
-  constructor(input: Omit<T.Relation, "name" | "type">) {
+  constructor(input: Omit<T.RelationInput, "name" | "type">) {
     this.result = Object.assign({ type: "relation" }, input as any);
   }
 
@@ -128,8 +128,31 @@ export const s = {
     return new ColumnUuidBuilder({ type: "uuid" });
   },
 
-  relation(column: string, foreignModel: string, foreignColumn: string) {
-    return new RelationBuilder({ column, foreignModel, foreignColumn });
+  belongsTo(column: string, foreignModel: string, foreignColumn: string) {
+    return new RelationBuilder({
+      relationType: "belongsTo",
+      column,
+      foreignModel,
+      foreignColumn,
+    });
+  },
+
+  hasOne(column: string, foreignModel: string, foreignColumn: string) {
+    return new RelationBuilder({
+      relationType: "hasOne",
+      column,
+      foreignModel,
+      foreignColumn,
+    });
+  },
+
+  hasMany(column: string, foreignModel: string, foreignColumn: string) {
+    return new RelationBuilder({
+      relationType: "hasMany",
+      column,
+      foreignModel,
+      foreignColumn,
+    });
   },
 
   model(

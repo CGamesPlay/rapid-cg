@@ -28,6 +28,7 @@ export class Database extends BaseDatabase {
     // a new object which is not actually an instance of our Database override.
     // So we get to do this would-be no-op.
     Object.setPrototypeOf(this, Database.prototype);
+    this.pragma("foreign_keys = ON");
   }
 
   // Execute a query and return information about the execution.

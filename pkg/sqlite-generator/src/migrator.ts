@@ -1,4 +1,4 @@
-import { s, DatabaseSchema, ModelSchema, Column } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rad/schema";
 
 function id(val: string) {
   return `"${val.replace(/"/g, '""')}"`;
@@ -42,6 +42,30 @@ function columnDefinition(c: Column): string {
     .join(" ");
 }
 
+function foreignKey(rel: Relation): string {
+  if (rel.relationType !== "belongsTo") {
+    /* istanbul ignore next */
+    throw new Error("invalid relation for foreignKey");
+  }
+  return `FOREIGN KEY ( ${id(rel.column)} ) REFERENCES ${id(
+    rel.foreignModel.tableName
+  )} ( ${id(rel.foreignColumn)} )`;
+}
+
+function createTable(name: string, spec: ModelSchema) {
+  const lines = [
+    ...Object.values(spec.columns).map((c) => columnDefinition(c)),
+    ...Object.values(spec.relations)
+      .filter((rel) => rel.relationType === "belongsTo")
+      .map((rel) => foreignKey(rel)),
+  ];
+  return [
+    `CREATE TABLE ${id(name)} (`,
+    lines.map((l) => `  ${l}`).join(",\n"),
+    `);`,
+  ].join("\n");
+}
+
 function generateModelCopyMigration(
   from: ModelSchema,
   to: ModelSchema
@@ -50,11 +74,7 @@ function generateModelCopyMigration(
   let lines: string[] = [];
   lines = lines.concat([
     `BEGIN EXCLUSIVE TRANSACTION;`,
-    `CREATE TABLE ${id(transferModel)} (`,
-    Object.values(to.columns)
-      .map((c) => `  ${columnDefinition(c)}`)
-      .join(",\n"),
-    `);`,
+    createTable(transferModel, to),
   ]);
   const sharedColumns: string[] = [];
   for (let column in from.columns) {
@@ -80,6 +100,19 @@ function generateModelMigration(
   /* istanbul ignore if */
   if (from === undefined && to === undefined) return "";
   else if (from !== undefined && to !== undefined) {
+    const fromRelations = Object.keys(from.relations)
+      .filter((rel) => from.relations[rel].relationType === "belongsTo")
+      .map((rel) => foreignKey(from.relations[rel]))
+      .sort()
+      .join(", ");
+    const toRelations = Object.keys(to.relations)
+      .filter((rel) => to.relations[rel].relationType === "belongsTo")
+      .map((rel) => foreignKey(to.relations[rel]))
+      .sort()
+      .join(", ");
+    if (fromRelations !== toRelations) {
+      return generateModelCopyMigration(from, to);
+    }
     const statements: string[] = [];
     for (let column in from.columns) {
       if (
@@ -108,13 +141,7 @@ function generateModelMigration(
     }
     return statements.join("\n\n");
   } else if (to !== undefined) {
-    return [
-      `CREATE TABLE ${id(to.tableName)} (`,
-      Object.values(to.columns)
-        .map((c) => `  ${columnDefinition(c)}`)
-        .join(",\n"),
-      `);`,
-    ].join("\n");
+    return createTable(to.tableName, to);
   } else if (from !== undefined) {
     return `DROP TABLE ${id(from.tableName)};`;
   } else {

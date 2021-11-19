@@ -21,22 +21,28 @@ export type WhereDoc = {
   updatedAt?: Runtime.WhereDate;
   parentId?: Runtime.WhereUuid;
   content?: Runtime.WhereString;
+  parent?: Runtime.WhereOneRelated<WhereDoc>;
+  children?: Runtime.WhereManyRelated<WhereDoc>;
   AND?: Runtime.MaybeArray<WhereDoc>;
   OR?: Runtime.MaybeArray<WhereDoc>;
   NOT?: Runtime.MaybeArray<WhereDoc>;
 };
 export const WhereDoc: z.ZodSchema<WhereDoc> = z.lazy(() =>
-  z.object({
-    rowid: Runtime.WhereNumber.optional(),
-    id: Runtime.WhereUuid.optional(),
-    createdAt: Runtime.WhereDate.optional(),
-    updatedAt: Runtime.WhereDate.optional(),
-    parentId: Runtime.WhereUuid.optional(),
-    content: Runtime.WhereString.optional(),
-    AND: Runtime.MaybeArray(WhereDoc).optional(),
-    OR: Runtime.MaybeArray(WhereDoc).optional(),
-    NOT: Runtime.MaybeArray(WhereDoc).optional(),
-  })
+  z
+    .object({
+      rowid: Runtime.WhereNumber.optional(),
+      id: Runtime.WhereUuid.optional(),
+      createdAt: Runtime.WhereDate.optional(),
+      updatedAt: Runtime.WhereDate.optional(),
+      parentId: Runtime.WhereUuid.optional(),
+      content: Runtime.WhereString.optional(),
+      parent: Runtime.WhereOneRelated(WhereDoc).optional(),
+      children: Runtime.WhereManyRelated(WhereDoc).optional(),
+      AND: Runtime.MaybeArray(WhereDoc).optional(),
+      OR: Runtime.MaybeArray(WhereDoc).optional(),
+      NOT: Runtime.MaybeArray(WhereDoc).optional(),
+    })
+    .strict()
 );
 
 export const OrderDocBy = z.object({
@@ -91,28 +97,78 @@ export const DeleteManyDocArgs = z.object({
 });
 export type DeleteManyDocArgs = z.infer<typeof DeleteManyDocArgs>;
 
-const formatWhereDoc = Runtime.makeWhereChainable((clause: WhereDoc) => {
-  const components: SQL.Template[] = [];
-  if (clause.rowid !== undefined) {
-    components.push(Runtime.makeWhereNumber("rowid", clause.rowid));
+const formatWhereDoc = Runtime.makeWhereChainable(
+  ({ alias, ns }: Runtime.Namespace.Result, where: WhereDoc) => {
+    const components: SQL.Template[] = [];
+    if (where.rowid !== undefined) {
+      components.push(
+        Runtime.formatWhereNumber(SQL`${alias}.${SQL.id("rowid")}`, where.rowid)
+      );
+    }
+    if (where.id !== undefined) {
+      components.push(
+        Runtime.formatWhereUuid(SQL`${alias}.${SQL.id("id")}`, where.id)
+      );
+    }
+    if (where.createdAt !== undefined) {
+      components.push(
+        Runtime.formatWhereDate(
+          SQL`${alias}.${SQL.id("createdAt")}`,
+          where.createdAt
+        )
+      );
+    }
+    if (where.updatedAt !== undefined) {
+      components.push(
+        Runtime.formatWhereDate(
+          SQL`${alias}.${SQL.id("updatedAt")}`,
+          where.updatedAt
+        )
+      );
+    }
+    if (where.parentId !== undefined) {
+      components.push(
+        Runtime.formatWhereUuid(
+          SQL`${alias}.${SQL.id("parentId")}`,
+          where.parentId
+        )
+      );
+    }
+    if (where.content !== undefined) {
+      components.push(
+        Runtime.formatWhereString(
+          SQL`${alias}.${SQL.id("content")}`,
+          where.content
+        )
+      );
+    }
+    if (where.parent !== undefined) {
+      components.push(
+        Runtime.formatWhereOne(
+          ns.referenceTable("parent"),
+          SQL`${alias}.${SQL.id("parentId")}`,
+          SQL.id("tbl"),
+          SQL.id("id"),
+          where.parent,
+          formatWhereDoc
+        )
+      );
+    }
+    if (where.children !== undefined) {
+      components.push(
+        Runtime.formatWhereMany(
+          ns.referenceTable("children"),
+          SQL`${alias}.${SQL.id("id")}`,
+          SQL.id("tbl"),
+          SQL.id("parentId"),
+          where.children,
+          formatWhereDoc
+        )
+      );
+    }
+    return components;
   }
-  if (clause.id !== undefined) {
-    components.push(Runtime.makeWhereUuid("id", clause.id));
-  }
-  if (clause.createdAt !== undefined) {
-    components.push(Runtime.makeWhereDate("createdAt", clause.createdAt));
-  }
-  if (clause.updatedAt !== undefined) {
-    components.push(Runtime.makeWhereDate("updatedAt", clause.updatedAt));
-  }
-  if (clause.parentId !== undefined) {
-    components.push(Runtime.makeWhereUuid("parentId", clause.parentId));
-  }
-  if (clause.content !== undefined) {
-    components.push(Runtime.makeWhereString("content", clause.content));
-  }
-  return components;
-});
+);
 
 function parseDoc(row: Record<string, unknown>): Doc {
   return {
@@ -191,7 +247,9 @@ export class DocClient<
     );
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
+      parts.push(
+        SQL`WHERE ${formatWhereDoc(Runtime.Namespace.root("tbl"), args.where)}`
+      );
     if (args?.orderBy !== undefined)
       parts.push(Runtime.makeOrderBy(args.orderBy));
     parts.push(SQL`LIMIT 1`);
@@ -218,7 +276,9 @@ export class DocClient<
     );
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
+      parts.push(
+        SQL`WHERE ${formatWhereDoc(Runtime.Namespace.root("tbl"), args.where)}`
+      );
     if (args?.orderBy !== undefined)
       parts.push(Runtime.makeOrderBy(args.orderBy));
     if (args?.limit !== undefined || args?.offset !== undefined) {
@@ -247,7 +307,9 @@ export class DocClient<
     const data = fillDocUpdateData(args.data);
     const parts: SQL.Template[] = [SQL.empty];
     if (args.where !== undefined)
-      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
+      parts.push(
+        SQL`WHERE ${formatWhereDoc(Runtime.Namespace.root("tbl"), args.where)}`
+      );
     if (args.limit !== undefined || args.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
       parts.push(SQL`LIMIT ${args.limit ?? -1}`);
@@ -264,7 +326,9 @@ export class DocClient<
   deleteMany(args?: DeleteManyDocArgs): Runtime.Database.RunResult {
     const parts: SQL.Template[] = [SQL.empty];
     if (args?.where !== undefined)
-      parts.push(SQL`WHERE ${formatWhereDoc(args.where)}`);
+      parts.push(
+        SQL`WHERE ${formatWhereDoc(Runtime.Namespace.root("tbl"), args.where)}`
+      );
     if (args?.limit !== undefined || args?.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { rowid: "asc" }));
       parts.push(SQL`LIMIT ${args.limit ?? -1}`);

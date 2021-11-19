@@ -3,7 +3,7 @@ import { s } from "@rad/schema";
 import { generateMigration } from "./migrator.js";
 
 describe("generateMigration", () => {
-  it("adds a table", () => {
+  it("creates a table", () => {
     const src = generateMigration({
       from: s.database({}),
       to: s.database({
@@ -73,6 +73,27 @@ describe("generateMigration", () => {
     `);
   });
 
+  it("creates with foreign keys", () => {
+    const src = generateMigration({
+      from: s.database({}),
+      to: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          parent: s.belongsTo("parentId", "User", "id"),
+          children: s.hasMany("id", "User", "parentId"),
+        }),
+      }),
+    });
+    expect(src).toMatchInlineSnapshot(`
+      "CREATE TABLE \\"users\\" (
+        \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        \\"parentId\\" INTEGER,
+        FOREIGN KEY ( \\"parentId\\" ) REFERENCES \\"users\\" ( \\"id\\" )
+      );"
+    `);
+  });
+
   it("drops a table", () => {
     const src = generateMigration({
       from: s.database({
@@ -133,5 +154,91 @@ describe("generateMigration", () => {
       ALTER TABLE transferusers RENAME TO users;
       COMMIT TRANSACTION;"
     `);
+  });
+
+  it("alters a foreign key", () => {
+    const src = generateMigration({
+      from: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+        }),
+      }),
+      to: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          parent: s.belongsTo("parentId", "User", "id"),
+          children: s.hasMany("id", "User", "parentId"),
+        }),
+      }),
+    });
+    expect(src).toMatchInlineSnapshot(`
+      "BEGIN EXCLUSIVE TRANSACTION;
+      CREATE TABLE \\"transferusers\\" (
+        \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        \\"parentId\\" INTEGER,
+        FOREIGN KEY ( \\"parentId\\" ) REFERENCES \\"users\\" ( \\"id\\" )
+      );
+      INSERT INTO transferusers ( \\"id\\", \\"parentId\\" )
+        SELECT \\"id\\", \\"parentId\\"
+        FROM \\"users\\";
+      DROP TABLE users;
+      ALTER TABLE transferusers RENAME TO users;
+      COMMIT TRANSACTION;"
+    `);
+  });
+
+  it("drops a foreign key", () => {
+    const src = generateMigration({
+      from: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          parent: s.belongsTo("parentId", "User", "id"),
+          children: s.hasMany("id", "User", "parentId"),
+        }),
+      }),
+      to: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+        }),
+      }),
+    });
+    expect(src).toMatchInlineSnapshot(`
+      "BEGIN EXCLUSIVE TRANSACTION;
+      CREATE TABLE \\"transferusers\\" (
+        \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        \\"parentId\\" INTEGER
+      );
+      INSERT INTO transferusers ( \\"id\\", \\"parentId\\" )
+        SELECT \\"id\\", \\"parentId\\"
+        FROM \\"users\\";
+      DROP TABLE users;
+      ALTER TABLE transferusers RENAME TO users;
+      COMMIT TRANSACTION;"
+    `);
+  });
+
+  it("ignores a renamed relation", () => {
+    const src = generateMigration({
+      from: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          relation0: s.belongsTo("parentId", "User", "id"),
+        }),
+      }),
+      to: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          parent: s.belongsTo("parentId", "User", "id"),
+          children: s.hasMany("parentId", "User", "id"),
+        }),
+      }),
+    });
+    expect(src).toMatchInlineSnapshot(`""`);
   });
 });

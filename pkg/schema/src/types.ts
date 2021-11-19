@@ -58,31 +58,47 @@ export const Column = z.union([
 ]);
 export type Column = z.infer<typeof Column>;
 
-export const Relation = z.object({
+const RelationBase = z.object({
   type: z.literal("relation"),
+  relationType: z.enum(["belongsTo", "hasOne", "hasMany"]),
   name: z.string().refine(validIdentifier, { message: "Invalid identifier" }),
   column: z.string(),
-  foreignModel: z.string(),
   foreignColumn: z.string(),
 });
-export type Relation = z.infer<typeof Relation>;
 
-export const ModelSchema = z.object({
+const ModelSchemaBase = z.object({
   name: z.string().refine(validIdentifier, { message: "Invalid identifier" }),
   tableName: z.string(),
   columns: z.record(Column),
-  relations: z.record(Relation),
 });
-export type ModelSchema = z.infer<typeof ModelSchema>;
 
-export const DatabaseSchema = z
-  .object({
-    models: z.record(ModelSchema),
-  })
-  .superRefine(validateDatabaseSchema);
-export type DatabaseSchema = z.infer<typeof DatabaseSchema>;
+export const RelationInput = RelationBase.extend({ foreignModel: z.string() });
+export type RelationInput = z.infer<typeof RelationInput>;
 
-function validateDatabaseSchema(val: DatabaseSchema, ctx: RefinementCtx) {
+export const ModelSchemaInput = ModelSchemaBase.extend({
+  relations: z.record(RelationInput),
+});
+export type ModelSchemaInput = z.infer<typeof ModelSchemaInput>;
+
+export type Relation = z.infer<typeof RelationBase> & {
+  foreignModel: ModelSchema;
+};
+
+export type ModelSchema = z.infer<typeof ModelSchemaBase> & {
+  relations: Record<string, Relation>;
+};
+
+export const DatabaseSchemaInput = z.object({
+  models: z.record(ModelSchemaInput),
+});
+export type DatabaseSchemaInput = z.infer<typeof DatabaseSchemaInput>;
+
+export type DatabaseSchema = { models: Record<string, ModelSchema> };
+export const DatabaseSchema = DatabaseSchemaInput.superRefine(
+  validateDatabaseSchema
+).transform(transformDatabaseSchema);
+
+function validateDatabaseSchema(val: DatabaseSchemaInput, ctx: RefinementCtx) {
   Object.values(val.models).forEach((model) => {
     Object.values(model.relations).forEach((relation) => {
       const column = model.columns[relation.column];
@@ -132,4 +148,21 @@ function validateDatabaseSchema(val: DatabaseSchema, ctx: RefinementCtx) {
       }
     });
   });
+}
+
+function transformDatabaseSchema(input: DatabaseSchemaInput): DatabaseSchema {
+  const ret: DatabaseSchema = { models: {} };
+  Object.values(input.models).forEach((modelInput: ModelSchemaInput) => {
+    ret.models[modelInput.name] = { ...modelInput, relations: {} };
+  });
+  Object.values(input.models).forEach((modelInput) => {
+    const model = ret.models[modelInput.name];
+    Object.values(modelInput.relations).forEach((relation) => {
+      model.relations[relation.name] = {
+        ...relation,
+        foreignModel: ret.models[relation.foreignModel],
+      };
+    });
+  });
+  return ret;
 }

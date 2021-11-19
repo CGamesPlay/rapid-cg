@@ -12,7 +12,8 @@ const database = s.database({
       parentId: s.uuid().nullable(),
       content: s.text(),
       extra: s.json().default({}),
-      parent: s.relation("parentId", "Doc", "id"),
+      parent: s.belongsTo("parentId", "Doc", "id"),
+      children: s.hasMany("id", "Doc", "parentId"),
     })
     .inTable("tbl"),
 });

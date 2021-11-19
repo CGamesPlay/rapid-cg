@@ -36,6 +36,17 @@ describe("generated types", () => {
     });
   });
 
+  it("Where (relation)", () => {
+    let whereDoc: Types.WhereDoc;
+    whereDoc = { parent: { is: { content: "string" } } };
+    Types.WhereDoc.parse(whereDoc);
+    // @ts-expect-error invalid where clause
+    whereDoc = { parent: { content: 42 } };
+    expect(Types.WhereDoc.safeParse(whereDoc)).toMatchObject({
+      success: false,
+    });
+  });
+
   it("OrderBy", () => {
     let orderBy: Types.OrderDocBy;
     orderBy = { updatedAt: "desc" };
@@ -116,16 +127,18 @@ describe("generated types", () => {
 
 describe("generated client", () => {
   beforeAll(() => {
-    for (let i = 0; i < 10; i++) {
-      client.docs.create({
+    let lastUuid: string = "";
+    for (let i = 1; i <= 10; i++) {
+      const doc = client.docs.create({
         data: {
-          rowid: i + 1,
+          rowid: i,
           createdAt: testStarted,
           updatedAt: testStarted,
-          parentId: null,
-          content: `doc ${i + 1}`,
+          parentId: i % 2 === 0 ? lastUuid : null,
+          content: `doc ${i}`,
         },
       });
+      lastUuid = doc.id;
     }
   });
 
@@ -164,6 +177,22 @@ describe("generated client", () => {
     it("supports offset", () => {
       const row = client.docs.findFirst({ offset: 2 });
       expect(row).toMatchObject({ rowid: 3 });
+    });
+    it("supports to-one relations", () => {
+      const row = client.docs.findFirst({
+        where: {
+          parent: { is: { content: "doc 1" }, isNot: { content: "child 1" } },
+        },
+      });
+      expect(row).toMatchObject({ rowid: 2 });
+    });
+    it("supports to-many relations", () => {
+      const row = client.docs.findFirst({
+        where: {
+          children: { some: { content: "doc 2" } },
+        },
+      });
+      expect(row).toMatchObject({ rowid: 1 });
     });
   });
 

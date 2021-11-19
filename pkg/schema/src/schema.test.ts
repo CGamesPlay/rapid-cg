@@ -35,11 +35,16 @@ describe("Database", () => {
       s.database({
         User: s.model({
           id: s.uuid().primary().autogenerate(),
-          posts: s.relation("id", "Post", "userId"),
+          avatar: s.hasOne("id", "Avatar", "userId"),
+          posts: s.hasMany("id", "Post", "userId"),
+        }),
+        Avatar: s.model({
+          userId: s.uuid().unique(),
+          user: s.belongsTo("userId", "User", "id"),
         }),
         Post: s.model({
           userId: s.uuid(),
-          user: s.relation("userId", "User", "id"),
+          user: s.belongsTo("userId", "User", "id"),
         }),
       })
     ).toMatchObject({
@@ -47,8 +52,9 @@ describe("Database", () => {
         User: {
           relations: {
             posts: {
+              relationType: "hasMany",
               column: "id",
-              foreignModel: "Post",
+              foreignModel: { name: "Post" },
               foreignColumn: "userId",
             },
           },
@@ -56,8 +62,9 @@ describe("Database", () => {
         Post: {
           relations: {
             user: {
+              relationType: "belongsTo",
               column: "userId",
-              foreignModel: "User",
+              foreignModel: { name: "User" },
               foreignColumn: "id",
             },
           },
@@ -111,10 +118,10 @@ describe("Database", () => {
           groupId: s.uuid(),
           senderId: s.uuid(),
           recipientId: s.integer(),
-          workspace: s.relation("workspaceId", "User", "id"),
-          group: s.relation("groupId", "Group", "id"),
-          sender: s.relation("senderId", "User", "uuid"),
-          recipient: s.relation("recipientId", "User", "id"),
+          workspace: s.belongsTo("workspaceId", "User", "id"),
+          group: s.belongsTo("groupId", "Group", "id"),
+          sender: s.belongsTo("senderId", "User", "uuid"),
+          recipient: s.belongsTo("recipientId", "User", "id"),
         }),
       })
     ).toThrowErrorMatchingInlineSnapshot(`

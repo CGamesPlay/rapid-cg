@@ -16,6 +16,12 @@ describe("generateClient", () => {
         uuidAuto: s.uuid().autogenerate(),
         json: s.json().default({ impressive: true }),
       }),
+      relation: s.model({
+        id: s.uuid(),
+        parentId: s.uuid().nullable(),
+        parent: s.belongsTo("parentId", "relation", "id"),
+        children: s.hasMany("id", "relation", "parentId"),
+      }),
     });
     // If this method does not throw, it means prettier successfully parsed and
     // rewrote the generated code.

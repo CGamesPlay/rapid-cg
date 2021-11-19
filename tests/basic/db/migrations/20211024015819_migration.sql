@@ -7,7 +7,8 @@ CREATE TABLE "tbl" (
   "updatedAt" TEXT NOT NULL,
   "parentId" TEXT,
   "content" TEXT NOT NULL,
-  "extra" TEXT NOT NULL
+  "extra" TEXT NOT NULL,
+  FOREIGN KEY ( "parentId" ) REFERENCES "tbl" ( "id" )
 );
 
 -- migrate:down

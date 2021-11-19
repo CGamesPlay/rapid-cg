@@ -5,9 +5,8 @@ import { introspectDatabase } from "./introspector.js";
 import { generateMigration } from "./migrator.js";
 
 describe("introspectDatabase", () => {
-  let db: Database;
-  beforeAll(() => {
-    db = new Database(":memory:");
+  it("works", () => {
+    const db = new Database(":memory:");
     db.run(SQL`
       CREATE TABLE "basics" (
         intPrimaryKey INTEGER PRIMARY KEY NOT NULL
@@ -25,9 +24,6 @@ describe("introspectDatabase", () => {
         "n" INTEGER,
         "label" TEXT NOT NULL
       );`);
-  });
-
-  it("works", () => {
     const schema = introspectDatabase(db);
     expect(schema).toEqual(
       s.database({
@@ -45,5 +41,31 @@ describe("introspectDatabase", () => {
           .inTable("tbl"),
       })
     );
+  });
+
+  it("understands foreign keys", () => {
+    const db = new Database(":memory:");
+    db.run(SQL`
+      CREATE TABLE "users" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "parentId" INTEGER NULL,
+        foreign key ( "parentId" ) references "users" ( "id" )
+      );`);
+    const actual = introspectDatabase(db);
+    const expected = s.database({
+      User: s.model({
+        id: s.integer().autoincrement(),
+        parentId: s.integer().nullable(),
+        relation0: s.belongsTo("parentId", "User", "id"),
+      }),
+    });
+    try {
+      expect(actual).toEqual(expected);
+    } catch (e) {
+      // Have to do this for https://github.com/facebook/jest/issues/10577
+      console.log(actual.models.User);
+      console.log(expected.models.User);
+      throw new Error("actual is not equal to expected value");
+    }
   });
 });

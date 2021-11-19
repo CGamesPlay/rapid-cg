@@ -1,7 +1,7 @@
 import _ from "lodash";
 import pluralize from "pluralize";
 import prettier from "prettier";
-import { s, DatabaseSchema, ModelSchema, Column } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rad/schema";
 
 function lit(val: unknown): string {
   if (typeof val === "bigint") {
@@ -56,20 +56,72 @@ function columnWhereSchema(column: Column): string {
   return columnWhereType(column);
 }
 
+function relationWhereType(relation: Relation): string {
+  const whereType = `Where${relation.foreignModel.name}`;
+  switch (relation.relationType) {
+    case "hasMany":
+      return `Runtime.WhereManyRelated<${whereType}>`;
+    case "belongsTo":
+    case "hasOne":
+      return `Runtime.WhereOneRelated<${whereType}>`;
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported relation type ${relation.relationType}`);
+  }
+}
+
+function relationWhereSchema(relation: Relation): string {
+  const whereType = `Where${relation.foreignModel.name}`;
+  switch (relation.relationType) {
+    case "hasMany":
+      return `Runtime.WhereManyRelated(${whereType})`;
+    case "belongsTo":
+    case "hasOne":
+      return `Runtime.WhereOneRelated(${whereType})`;
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported relation type ${relation.relationType}`);
+  }
+}
+
 function columnFormatWhere(column: Column): string {
-  const args = `(${lit(column.name)}, clause.${column.name})`;
+  const args = `(SQL\`$\{alias}.$\{SQL.id(${lit(column.name)})}\`, where.${
+    column.name
+  })`;
   switch (column.type) {
     case "date":
-      return `Runtime.makeWhereDate${args}`;
+      return `Runtime.formatWhereDate${args}`;
     case "integer":
-      return `Runtime.makeWhereNumber${args}`;
+      return `Runtime.formatWhereNumber${args}`;
     case "text":
-      return `Runtime.makeWhereString${args}`;
+      return `Runtime.formatWhereString${args}`;
     case "uuid":
-      return `Runtime.makeWhereUuid${args}`;
+      return `Runtime.formatWhereUuid${args}`;
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);
+  }
+}
+
+function relationFormatWhere(relation: Relation): string {
+  const formatWhereFunc = `formatWhere${relation.foreignModel.name}`;
+  const args = `(
+    ns.referenceTable(${lit(relation.name)}),
+    SQL\`$\{alias}.$\{SQL.id(${lit(relation.column)})}\`,
+    SQL.id(${lit(relation.foreignModel.tableName)}),
+    SQL.id(${lit(relation.foreignColumn)}),
+    where.${relation.name},
+    ${formatWhereFunc}
+  )`;
+  switch (relation.relationType) {
+    case "hasMany":
+      return `Runtime.formatWhereMany${args}`;
+    case "belongsTo":
+    case "hasOne":
+      return `Runtime.formatWhereOne${args}`;
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported relation type ${relation.relationType}`);
   }
 }
 
@@ -174,6 +226,7 @@ function generateModelClient(schema: ModelSchema): ModelInfo {
   const fillCreateDataFunc = `fill${modelType}CreateData`;
   const fillUpdateDataFunc = `fill${modelType}UpdateData`;
   const columns = Object.values(schema.columns);
+  const relations = Object.values(schema.relations);
   let rowid = columns.find(
     (c) => c.type === "integer" && c.primary === "autoincrement"
   );
@@ -192,6 +245,7 @@ export type ${whereType} = {
     .filter((c) => c.type !== "json")
     .map((c) => `${c.name}?: ${columnWhereType(c)};`)
     .join("\n")}
+  ${relations.map(r => `${r.name}?: ${relationWhereType(r)};`).join("\n")}
   AND?: Runtime.MaybeArray<${whereType}>;
   OR?: Runtime.MaybeArray<${whereType}>;
   NOT?: Runtime.MaybeArray<${whereType}>;
@@ -202,10 +256,13 @@ export const ${whereType}: z.ZodSchema<${whereType}> = z.lazy(() =>
     .filter((c) => c.type !== "json")
     .map((c) => `${c.name}: ${columnWhereSchema(c)}.optional(),`)
     .join("\n")}
+  ${relations
+    .map(r => `${r.name}?: ${relationWhereSchema(r)}.optional(),`)
+    .join("\n")}
   AND: Runtime.MaybeArray(${whereType}).optional(),
   OR: Runtime.MaybeArray(${whereType}).optional(),
   NOT: Runtime.MaybeArray(${whereType}).optional(),
-  })
+  }).strict()
 );
 
 export const ${orderByType} = z.object({
@@ -258,16 +315,21 @@ export const ${deleteManyArgsType} = z.object({
 });
 export type ${deleteManyArgsType} = z.infer<typeof ${deleteManyArgsType}>;
 
-const ${formatWhereFunc} = Runtime.makeWhereChainable((clause: ${whereType}) => {
+const ${formatWhereFunc} = Runtime.makeWhereChainable(({ alias, ns }: Runtime.Namespace.Result, where: ${whereType}) => {
   const components: SQL.Template[] = [];
   ${columns
     .filter((c) => c.type !== "json")
     .map((c) => {
-      return `if (clause.${c.name} !== undefined) {
+      return `if (where.${c.name} !== undefined) {
       components.push(${columnFormatWhere(c)});
     }`;
     })
     .join("\n")}
+  ${relations.map(rel => {
+    return `if (where.${rel.name} !== undefined) {
+      components.push(${relationFormatWhere(rel)});
+    }`;
+  }).join("\n")}
   return components;
 });
 
@@ -304,7 +366,7 @@ export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClie
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
     const parts: SQL.Template[] = [ SQL.empty ];
-    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(Runtime.Namespace.root(${lit(schema.tableName)}), args.where)}\`);
     if (args?.orderBy !== undefined) parts.push(Runtime.makeOrderBy(args.orderBy));
     parts.push(SQL\`LIMIT 1\`);
     if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
@@ -320,7 +382,7 @@ export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClie
       .map((c) => `SQL.id(${lit(c.name)})`)
       .join(", ")}], ", ");
     const parts: SQL.Template[] = [ SQL.empty ];
-    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(Runtime.Namespace.root(${lit(schema.tableName)}), args.where)}\`);
     if (args?.orderBy !== undefined) parts.push(Runtime.makeOrderBy(args.orderBy));
     if (args?.limit !== undefined || args?.offset !== undefined) {
       parts.push(SQL\`LIMIT \${args?.limit ?? -1}\`);
@@ -347,7 +409,7 @@ export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClie
   updateMany(args: ${updateManyArgsType}): Runtime.Database.RunResult {
     const data = ${fillUpdateDataFunc}(args.data);
     const parts: SQL.Template[] = [ SQL.empty ];
-    if (args.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(Runtime.Namespace.root(${lit(schema.tableName)}), args.where)}\`);
     if (args.limit !== undefined || args.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { ${rowid.name}: "asc" }));
       parts.push(SQL\`LIMIT \${args.limit ?? -1}\`);
@@ -360,7 +422,7 @@ export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClie
 
   deleteMany(args?: ${deleteManyArgsType}): Runtime.Database.RunResult {
     const parts: SQL.Template[] = [ SQL.empty ];
-    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(args.where)}\`);
+    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(Runtime.Namespace.root(${lit(schema.tableName)}), args.where)}\`);
     if (args?.limit !== undefined || args?.offset !== undefined) {
       parts.push(Runtime.makeOrderBy(args.orderBy ?? { ${rowid.name}: "asc" }));
       parts.push(SQL\`LIMIT \${args.limit ?? -1}\`);
