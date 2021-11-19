@@ -5,6 +5,7 @@ CREATE TABLE "tbl" (
   "id" TEXT PRIMARY KEY NOT NULL,
   "createdAt" TEXT NOT NULL,
   "updatedAt" TEXT NOT NULL,
+  "parentId" TEXT,
   "content" TEXT NOT NULL,
   "extra" TEXT NOT NULL
 );

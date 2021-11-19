@@ -8,6 +8,7 @@ export const Doc = z.object({
   id: z.string().uuid(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  parentId: z.string().uuid().nullable(),
   content: z.string(),
   extra: z.unknown(),
 });
@@ -18,6 +19,7 @@ export type WhereDoc = {
   id?: Runtime.WhereUuid;
   createdAt?: Runtime.WhereDate;
   updatedAt?: Runtime.WhereDate;
+  parentId?: Runtime.WhereUuid;
   content?: Runtime.WhereString;
   AND?: Runtime.MaybeArray<WhereDoc>;
   OR?: Runtime.MaybeArray<WhereDoc>;
@@ -29,6 +31,7 @@ export const WhereDoc: z.ZodSchema<WhereDoc> = z.lazy(() =>
     id: Runtime.WhereUuid.optional(),
     createdAt: Runtime.WhereDate.optional(),
     updatedAt: Runtime.WhereDate.optional(),
+    parentId: Runtime.WhereUuid.optional(),
     content: Runtime.WhereString.optional(),
     AND: Runtime.MaybeArray(WhereDoc).optional(),
     OR: Runtime.MaybeArray(WhereDoc).optional(),
@@ -41,6 +44,7 @@ export const OrderDocBy = z.object({
   id: Runtime.SortOrder.optional(),
   createdAt: Runtime.SortOrder.optional(),
   updatedAt: Runtime.SortOrder.optional(),
+  parentId: Runtime.SortOrder.optional(),
   content: Runtime.SortOrder.optional(),
 });
 export type OrderDocBy = z.infer<typeof OrderDocBy>;
@@ -101,6 +105,9 @@ const formatWhereDoc = Runtime.makeWhereChainable((clause: WhereDoc) => {
   if (clause.updatedAt !== undefined) {
     components.push(Runtime.makeWhereDate("updatedAt", clause.updatedAt));
   }
+  if (clause.parentId !== undefined) {
+    components.push(Runtime.makeWhereUuid("parentId", clause.parentId));
+  }
   if (clause.content !== undefined) {
     components.push(Runtime.makeWhereString("content", clause.content));
   }
@@ -113,6 +120,7 @@ function parseDoc(row: Record<string, unknown>): Doc {
     id: row.id as string,
     createdAt: new Date(row.createdAt as string),
     updatedAt: new Date(row.updatedAt as string),
+    parentId: row.parentId as string | null,
     content: row.content as string,
     extra: JSON.parse(row.extra as string),
   };
@@ -133,6 +141,9 @@ function serializeDoc(obj: Partial<Doc>): Record<string, SQL.RawValue> {
         break;
       case "updatedAt":
         result[key] = obj[key]?.toISOString();
+        break;
+      case "parentId":
+        result[key] = obj[key];
         break;
       case "content":
         result[key] = obj[key];
@@ -172,6 +183,7 @@ export class DocClient<
         SQL.id("id"),
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
+        SQL.id("parentId"),
         SQL.id("content"),
         SQL.id("extra"),
       ],
@@ -198,6 +210,7 @@ export class DocClient<
         SQL.id("id"),
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
+        SQL.id("parentId"),
         SQL.id("content"),
         SQL.id("extra"),
       ],

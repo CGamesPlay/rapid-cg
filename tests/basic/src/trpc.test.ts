@@ -56,6 +56,7 @@ describe("createServer", () => {
         id: expect.any(String),
         createdAt: testStarted.toISOString(),
         updatedAt: testStarted.toISOString(),
+        parentId: null,
         content: "test doc",
         extra: {},
       });

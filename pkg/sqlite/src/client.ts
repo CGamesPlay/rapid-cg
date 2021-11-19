@@ -57,6 +57,7 @@ export function makeUpdate(
 export class GenericClient<ModelType> {
   constructor(protected $db: Database) {}
 
+  /* istanbul ignore next */
   transform(input: unknown): ModelType {
     // @ts-expect-error this is a helper function to hide the type cast
     return input;

@@ -11,6 +11,7 @@ describe("generated types", () => {
     let doc: Types.Doc = {
       rowid: 1,
       id: randomUuid(),
+      parentId: null,
       createdAt: testStarted,
       updatedAt: testStarted,
       content: "string",
@@ -121,6 +122,7 @@ describe("generated client", () => {
           rowid: i + 1,
           createdAt: testStarted,
           updatedAt: testStarted,
+          parentId: null,
           content: `doc ${i + 1}`,
         },
       });
@@ -135,6 +137,7 @@ describe("generated client", () => {
         id: expect.any(String),
         createdAt: testStarted,
         updatedAt: testStarted,
+        parentId: null,
         content: "doc 1",
         extra: {},
       });
@@ -173,6 +176,7 @@ describe("generated client", () => {
         id: expect.any(String),
         createdAt: testStarted,
         updatedAt: testStarted,
+        parentId: null,
         content: "doc 1",
         extra: {},
       });
@@ -200,6 +204,7 @@ describe("generated client", () => {
         id: expect.any(String),
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
+        parentId: null,
         content: "second",
         extra: { author: "me" },
       });

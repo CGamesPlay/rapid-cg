@@ -9,8 +9,10 @@ const database = s.database({
       id: s.uuid().primary().autogenerate(),
       createdAt: s.date().createdAt(),
       updatedAt: s.date().updatedAt(),
+      parentId: s.uuid().nullable(),
       content: s.text(),
       extra: s.json().default({}),
+      parent: s.relation("parentId", "Doc", "id"),
     })
     .inTable("tbl"),
 });

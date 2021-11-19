@@ -22,7 +22,7 @@ build-tests:
     robo build
     root=$(pwd)
     for case in tests/*; do (
-      echo "Testing $case"
+      echo "Building $case"
       cd $case
       $root/pkg/cli/dist/cli.js generate
       tsc -b .

@@ -8,7 +8,6 @@ class ColumnAnyBuilder<DefaultType = never> {
 
   constructor(input: Omit<T.Column, "name">) {
     this.result = input;
-    Object.assign(this, input);
   }
 
   build(name: string): T.Column {
@@ -63,8 +62,20 @@ class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   }
 }
 
+class RelationBuilder {
+  result: Omit<T.Relation, "name">;
+
+  constructor(input: Omit<T.Relation, "name" | "type">) {
+    this.result = Object.assign({ type: "relation" }, input as any);
+  }
+
+  build(name: string): T.Relation {
+    return Object.assign({} as T.Relation, this.result, { name });
+  }
+}
+
 class ModelBuilder {
-  result: Partial<T.ModelSchema> = { columns: {} };
+  result: Partial<T.ModelSchema> = { columns: {}, relations: {} };
 
   build(name: string): T.ModelSchema {
     return Object.assign(
@@ -117,10 +128,21 @@ export const s = {
     return new ColumnUuidBuilder({ type: "uuid" });
   },
 
-  model(columns: Record<string, ColumnAnyBuilder<never>>): ModelBuilder {
+  relation(column: string, foreignModel: string, foreignColumn: string) {
+    return new RelationBuilder({ column, foreignModel, foreignColumn });
+  },
+
+  model(
+    columns: Record<string, ColumnAnyBuilder<never> | RelationBuilder>
+  ): ModelBuilder {
     const model = new ModelBuilder();
     for (let name in columns) {
-      model.result.columns![name] = columns[name].build(name);
+      const result = columns[name].build(name);
+      if (result.type === "relation") {
+        model.result.relations![name] = result;
+      } else {
+        model.result.columns![name] = result;
+      }
     }
     return model;
   },
