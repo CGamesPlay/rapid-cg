@@ -3,6 +3,49 @@ import { z } from "zod";
 import SQL from "./tag.js";
 import { MaybeArray, Namespace } from "./utils.js";
 
+export const WhereBoolean = z.union([
+  z.boolean(),
+  z.null(),
+  z.object({
+    equals: z.boolean().nullable().optional(),
+    not: z.boolean().nullable().optional(),
+  }),
+]);
+export type WhereBoolean =
+  | boolean
+  | null
+  | { equals?: boolean | null; not?: boolean | null };
+
+export function formatWhereBoolean(
+  column: SQL.Template,
+  where: WhereBoolean
+): SQL.Template {
+  if (typeof where === "boolean" || where === null) {
+    where = { equals: where };
+  }
+  const parts: SQL.Template[] = [];
+  if (where.equals !== undefined) {
+    if (where.equals === null) {
+      parts.push(SQL`${column} IS NULL`);
+    } else if (where.equals) {
+      parts.push(SQL`${column} != 0`);
+    } else {
+      parts.push(SQL`${column} = 0`);
+    }
+  }
+  if (where.not !== undefined) {
+    if (where.not === null) {
+      parts.push(SQL`${column} IS NOT NULL`);
+    } else if (where.not) {
+      parts.push(SQL`${column} = 0`);
+    } else {
+      parts.push(SQL`${column} != 0`);
+    }
+  }
+  if (parts.length === 0) return SQL`1 = 1`;
+  return SQL.join(parts, " AND ");
+}
+
 const WhereScalar = <T extends z.ZodTypeAny>(t: T) =>
   z.object({
     equals: t.nullable().optional(),

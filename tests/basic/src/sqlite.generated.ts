@@ -8,6 +8,7 @@ export const Doc = z.object({
   id: z.string().uuid(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  isActive: z.boolean(),
   parentId: z.string().uuid().nullable(),
   content: z.string(),
   extra: z.unknown(),
@@ -19,6 +20,7 @@ export type WhereDoc = {
   id?: Runtime.WhereUuid;
   createdAt?: Runtime.WhereDate;
   updatedAt?: Runtime.WhereDate;
+  isActive?: Runtime.WhereBoolean;
   parentId?: Runtime.WhereUuid;
   content?: Runtime.WhereString;
   parent?: Runtime.WhereOneRelated<WhereDoc>;
@@ -34,6 +36,7 @@ export const WhereDoc: z.ZodSchema<WhereDoc> = z.lazy(() =>
       id: Runtime.WhereUuid.optional(),
       createdAt: Runtime.WhereDate.optional(),
       updatedAt: Runtime.WhereDate.optional(),
+      isActive: Runtime.WhereBoolean.optional(),
       parentId: Runtime.WhereUuid.optional(),
       content: Runtime.WhereString.optional(),
       parent: Runtime.WhereOneRelated(WhereDoc).optional(),
@@ -50,6 +53,7 @@ export const OrderDocBy = z.object({
   id: Runtime.SortOrder.optional(),
   createdAt: Runtime.SortOrder.optional(),
   updatedAt: Runtime.SortOrder.optional(),
+  isActive: Runtime.SortOrder.optional(),
   parentId: Runtime.SortOrder.optional(),
   content: Runtime.SortOrder.optional(),
 });
@@ -126,6 +130,14 @@ const formatWhereDoc = Runtime.makeWhereChainable(
         )
       );
     }
+    if (where.isActive !== undefined) {
+      components.push(
+        Runtime.formatWhereBoolean(
+          SQL`${alias}.${SQL.id("isActive")}`,
+          where.isActive
+        )
+      );
+    }
     if (where.parentId !== undefined) {
       components.push(
         Runtime.formatWhereUuid(
@@ -176,6 +188,7 @@ function parseDoc(row: Record<string, unknown>): Doc {
     id: row.id as string,
     createdAt: new Date(row.createdAt as string),
     updatedAt: new Date(row.updatedAt as string),
+    isActive: row.isActive != 0,
     parentId: row.parentId as string | null,
     content: row.content as string,
     extra: JSON.parse(row.extra as string),
@@ -185,6 +198,8 @@ function parseDoc(row: Record<string, unknown>): Doc {
 function serializeDoc(obj: Partial<Doc>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
   for (const key in obj) {
+    /* istanbul ignore if */
+    if ((obj as any)[key] === undefined) continue;
     switch (key) {
       case "rowid":
         result[key] = obj[key];
@@ -197,6 +212,9 @@ function serializeDoc(obj: Partial<Doc>): Record<string, SQL.RawValue> {
         break;
       case "updatedAt":
         result[key] = obj[key]?.toISOString();
+        break;
+      case "isActive":
+        result[key] = obj[key] === null ? null : +obj[key]!;
         break;
       case "parentId":
         result[key] = obj[key];
@@ -220,6 +238,7 @@ function fillDocCreateData(data: Partial<Doc>): Partial<Doc> {
     id: Runtime.randomUuid(),
     createdAt: new Date(),
     updatedAt: new Date(),
+    isActive: false,
     extra: {},
     ...data,
   };
@@ -239,6 +258,7 @@ export class DocClient<
         SQL.id("id"),
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
+        SQL.id("isActive"),
         SQL.id("parentId"),
         SQL.id("content"),
         SQL.id("extra"),
@@ -268,6 +288,7 @@ export class DocClient<
         SQL.id("id"),
         SQL.id("createdAt"),
         SQL.id("updatedAt"),
+        SQL.id("isActive"),
         SQL.id("parentId"),
         SQL.id("content"),
         SQL.id("extra"),

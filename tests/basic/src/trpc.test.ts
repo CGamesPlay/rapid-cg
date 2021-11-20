@@ -54,6 +54,7 @@ describe("createServer", () => {
       expect(doc).toEqual({
         rowid: expect.any(Number),
         id: expect.any(String),
+        isActive: false,
         createdAt: testStarted.toISOString(),
         updatedAt: testStarted.toISOString(),
         parentId: null,

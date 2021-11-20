@@ -7,15 +7,21 @@ function validIdentifier(s: string) {
 
 export const ColumnAny = z.object({
   name: z.string().refine(validIdentifier, { message: "Invalid identifier" }),
+  primary: z.boolean().optional(),
   unique: z.boolean().optional(),
   nullable: z.boolean().optional(),
 });
 export type ColumnAny = z.infer<typeof ColumnAny>;
 
+export const ColumnBoolean = ColumnAny.extend({
+  type: z.literal("boolean"),
+  default: z.boolean().optional(),
+});
+export type ColumnBoolean = z.infer<typeof ColumnBoolean>;
+
 export const ColumnDate = ColumnAny.extend({
   type: z.literal("date"),
   mode: z.enum(["createdAt", "updatedAt"]).optional(),
-  primary: z.boolean().optional(),
   default: z.instanceof(Date).optional(),
 });
 export type ColumnDate = z.infer<typeof ColumnDate>;
@@ -29,14 +35,12 @@ export type ColumnInteger = z.infer<typeof ColumnInteger>;
 
 export const ColumnJson = ColumnAny.extend({
   type: z.literal("json"),
-  primary: z.boolean().optional(),
   default: z.unknown().optional(),
 });
 export type ColumnJson = z.infer<typeof ColumnJson>;
 
 export const ColumnText = ColumnAny.extend({
   type: z.literal("text"),
-  primary: z.boolean().optional(),
   default: z.string().optional(),
 });
 export type ColumnText = z.infer<typeof ColumnText>;
@@ -44,12 +48,12 @@ export type ColumnText = z.infer<typeof ColumnText>;
 export const ColumnUuid = ColumnAny.extend({
   type: z.literal("uuid"),
   autogenerate: z.boolean().optional(),
-  primary: z.boolean().optional(),
   default: z.string().uuid().optional(),
 });
 export type ColumnUuid = z.infer<typeof ColumnUuid>;
 
 export const Column = z.union([
+  ColumnBoolean,
   ColumnDate,
   ColumnInteger,
   ColumnJson,

@@ -20,6 +20,8 @@ function sqlId(id: string): string {
 function columnSchema(column: Column): string {
   const orNull = column.nullable ? ".nullable()" : "";
   switch (column.type) {
+    case "boolean":
+      return "z.boolean()" + orNull;
     case "date":
       return "z.date()" + orNull;
     case "integer":
@@ -38,6 +40,8 @@ function columnSchema(column: Column): string {
 
 function columnWhereType(column: Column): string {
   switch (column.type) {
+    case "boolean":
+      return "Runtime.WhereBoolean";
     case "date":
       return "Runtime.WhereDate";
     case "integer":
@@ -89,6 +93,8 @@ function columnFormatWhere(column: Column): string {
     column.name
   })`;
   switch (column.type) {
+    case "boolean":
+      return `Runtime.formatWhereBoolean${args}`;
     case "date":
       return `Runtime.formatWhereDate${args}`;
     case "integer":
@@ -128,6 +134,11 @@ function relationFormatWhere(relation: Relation): string {
 function columnParse(column: Column): string {
   const orNull = column.nullable ? " | null" : "";
   switch (column.type) {
+    case "boolean": {
+      const parse = `row.${column.name} != 0`;
+      if (!column.nullable) return parse;
+      return `row.${column.name} === null ? null : ${parse}`;
+    }
     case "date":
       return `new Date(row.${column.name} as string)`;
     case "integer":
@@ -145,6 +156,8 @@ function columnParse(column: Column): string {
 
 function columnSerialize(column: Column): string {
   switch (column.type) {
+    case "boolean":
+      return `obj[key] === null ? null : +obj[key]!`;
     case "date":
       return `obj[key]?.toISOString()`;
     case "integer":
@@ -342,6 +355,8 @@ function ${parseFunc}(row: Record<string, unknown>): ${modelType} {
 function ${serializeFunc}(obj: Partial<${modelType}>): Record<string, SQL.RawValue> {
   const result: Record<string, SQL.RawValue> = {};
   for (const key in obj) {
+    /* istanbul ignore if */
+    if ((obj as any)[key] === undefined) continue;
     switch (key) {
       ${columns
         .map(

@@ -2,6 +2,8 @@ import { v4 } from "uuid";
 
 import SQL from "./tag.js";
 import {
+  WhereBoolean,
+  formatWhereBoolean,
   WhereString,
   formatWhereString,
   formatWhereNumber,
@@ -48,6 +50,23 @@ describe("formatWhereScalar", () => {
     expect(formatWhereString(col, { equals: null, not: null })).toEqualSQL(
       SQL`${col} IS NULL AND ${col} IS NOT NULL`
     );
+  });
+});
+
+describe("formatWhereBoolean", () => {
+  const cases: Array<[WhereBoolean, SQL.Template]> = [
+    [true, SQL`${col} != 0`],
+    [false, SQL`${col} = 0`],
+    [null, SQL`${col} IS NULL`],
+    [{ not: true }, SQL`${col} = 0`],
+    [{ not: false }, SQL`${col} != 0`],
+    [{ not: null }, SQL`${col} IS NOT NULL`],
+    [{}, SQL`1 = 1`],
+  ];
+  cases.forEach(([where, expected]) => {
+    it(`handles ${JSON.stringify(where)}`, () => {
+      expect(formatWhereBoolean(col, where)).toEqualSQL(expected);
+    });
   });
 });
 

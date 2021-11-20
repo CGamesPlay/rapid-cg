@@ -11,6 +11,7 @@ function columnType(column: Column): string {
     case "text":
     case "uuid":
       return "TEXT";
+    case "boolean":
     case "integer":
       return "INTEGER";
     /* istanbul ignore next */

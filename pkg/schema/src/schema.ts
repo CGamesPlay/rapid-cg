@@ -38,11 +38,7 @@ class ColumnAnyBuilder<DefaultType = never> {
   }
 }
 
-class ColumnUuidBuilder extends ColumnAnyBuilder<string> {
-  autogenerate(autogenerate = true): this {
-    return this.withProperties({ autogenerate });
-  }
-}
+class ColumnBoolBuilder extends ColumnAnyBuilder<boolean> {}
 
 class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
   mode: undefined | "createdAt" | "updatedAt";
@@ -59,6 +55,12 @@ class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
 class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   autoincrement(): this {
     return this.withProperties({ primary: "autoincrement" });
+  }
+}
+
+class ColumnUuidBuilder extends ColumnAnyBuilder<string> {
+  autogenerate(autogenerate = true): this {
+    return this.withProperties({ autogenerate });
   }
 }
 
@@ -108,6 +110,10 @@ class ModelBuilder {
 }
 
 export const s = {
+  boolean(): ColumnBoolBuilder {
+    return new ColumnBoolBuilder({ type: "boolean" });
+  },
+
   date(): ColumnDateBuilder {
     return new ColumnDateBuilder({ type: "date" });
   },

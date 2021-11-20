@@ -9,6 +9,7 @@ const database = s.database({
       id: s.uuid().primary().autogenerate(),
       createdAt: s.date().createdAt(),
       updatedAt: s.date().updatedAt(),
+      isActive: s.boolean().default(false),
       parentId: s.uuid().nullable(),
       content: s.text(),
       extra: s.json().default({}),

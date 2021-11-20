@@ -36,21 +36,23 @@ describe("generateMigration", () => {
       from: s.database({}),
       to: s.database({
         User: s.model({
-          text: s.text(),
-          integer: s.integer(),
+          boolean: s.boolean(),
           date: s.date(),
-          uuid: s.uuid(),
+          integer: s.integer(),
           json: s.json(),
+          text: s.text(),
+          uuid: s.uuid(),
         }),
       }),
     });
     expect(src).toMatchInlineSnapshot(`
       "CREATE TABLE \\"users\\" (
-        \\"text\\" TEXT NOT NULL,
-        \\"integer\\" INTEGER NOT NULL,
+        \\"boolean\\" INTEGER NOT NULL,
         \\"date\\" TEXT NOT NULL,
-        \\"uuid\\" TEXT NOT NULL,
-        \\"json\\" TEXT NOT NULL
+        \\"integer\\" INTEGER NOT NULL,
+        \\"json\\" TEXT NOT NULL,
+        \\"text\\" TEXT NOT NULL,
+        \\"uuid\\" TEXT NOT NULL
       );"
     `);
   });
