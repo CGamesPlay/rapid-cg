@@ -12,6 +12,7 @@ const database = s.database({
       isActive: s.boolean().default(false),
       parentId: s.uuid().nullable(),
       content: s.text(),
+      contentLength: s.integer().generatedAs("LENGTH(content)"),
       extra: s.json().default({}),
       parent: s.belongsTo("parentId", "Doc", "id"),
       children: s.hasMany("id", "Doc", "parentId"),

@@ -36,6 +36,10 @@ class ColumnAnyBuilder<DefaultType = never> {
   default(value: DefaultType): this {
     return this.withProperties({ default: value });
   }
+
+  generatedAs(sql: string): this {
+    return this.withProperties({ generatedAs: sql });
+  }
 }
 
 class ColumnBoolBuilder extends ColumnAnyBuilder<boolean> {}

@@ -243,4 +243,27 @@ describe("generateMigration", () => {
     });
     expect(src).toMatchInlineSnapshot(`""`);
   });
+
+  it("handles generated columns", () => {
+    const src = generateMigration({
+      from: s.database({}),
+      to: s.database({
+        User: s.model({
+          id: s.integer().autoincrement(),
+          parentId: s.integer().nullable(),
+          parent: s.belongsTo("parentId", "User", "id"),
+          children: s.hasMany("parentId", "User", "id"),
+          generatedColumn: s.text().generatedAs('"generated"'),
+        }),
+      }),
+    });
+    expect(src).toMatchInlineSnapshot(`
+      "CREATE TABLE \\"users\\" (
+        \\"id\\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        \\"parentId\\" INTEGER,
+        \\"generatedColumn\\" TEXT NOT NULL GENERATED ALWAYS AS (\\"generated\\"),
+        FOREIGN KEY ( \\"parentId\\" ) REFERENCES \\"users\\" ( \\"id\\" )
+      );"
+    `);
+  });
 });

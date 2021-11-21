@@ -34,6 +34,9 @@ function columnConstraints(column: Column): string {
   if (!column.nullable) {
     constraints.push("NOT NULL");
   }
+  if (column.generatedAs) {
+    constraints.push(`GENERATED ALWAYS AS (${column.generatedAs})`);
+  }
   return constraints.join(" ");
 }
 

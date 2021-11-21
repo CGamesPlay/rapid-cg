@@ -197,6 +197,12 @@ describe("generated client", () => {
       });
       expect(row).toMatchObject({ rowid: 1 });
     });
+    it("supports generated columns", () => {
+      const row = client.docs.findFirst({
+        where: { contentLength: 5 },
+      });
+      expect(row).toMatchObject({ content: expect.stringMatching(/^.{5}$/) });
+    });
   });
 
   describe("findMany", () => {

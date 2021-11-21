@@ -8,6 +8,7 @@ CREATE TABLE "tbl" (
   "isActive" INTEGER NOT NULL,
   "parentId" TEXT,
   "content" TEXT NOT NULL,
+  "contentLength" INTEGER NOT NULL GENERATED ALWAYS AS (LENGTH(content)),
   "extra" TEXT NOT NULL,
   FOREIGN KEY ( "parentId" ) REFERENCES "tbl" ( "id" )
 );

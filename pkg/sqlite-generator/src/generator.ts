@@ -249,7 +249,10 @@ function generateModelClient(schema: ModelSchema): ModelInfo {
   }
   // prettier-ignore
   const source = `export const ${modelType} = z.object({
-  ${columns.map((c) => `${c.name}: ${columnSchema(c)},`).join("\n")}
+  ${columns
+    .filter(c => !c.generatedAs)
+    .map((c) => `${c.name}: ${columnSchema(c)},`)
+    .join("\n")}
 });
 export type ${modelType} = z.infer<typeof ${modelType}>;
 
@@ -348,7 +351,10 @@ const ${formatWhereFunc} = Runtime.makeWhereChainable(({ alias, ns }: Runtime.Na
 
 function ${parseFunc}(row: Record<string, unknown>): ${modelType} {
   return {
-  ${columns.map((c) => `${c.name}: ${columnParse(c)},`).join("\n")}
+  ${columns
+    .filter(c => !c.generatedAs)
+    .map((c) => `${c.name}: ${columnParse(c)},`)
+    .join("\n")}
   };
 }
 
@@ -359,10 +365,8 @@ function ${serializeFunc}(obj: Partial<${modelType}>): Record<string, SQL.RawVal
     if ((obj as any)[key] === undefined) continue;
     switch (key) {
       ${columns
-        .map(
-          (c) =>
-            `case ${lit(c.name)}: result[key] = ${columnSerialize(c)}; break;`
-        )
+        .filter(c => !c.generatedAs)
+        .map((c) => `case ${lit(c.name)}: result[key] = ${columnSerialize(c)}; break;`)
         .join("\n")}
         /* istanbul ignore next */
       default: throw new Error(\`invalid key \${key}\`);
@@ -377,19 +381,7 @@ ${fillUpdateData(fillUpdateDataFunc, modelType, columns)}
 
 export class ${clientType}<ModelType = ${modelType}> extends Runtime.GenericClient<ModelType> {
   findFirst(args?: ${findFirstArgsType}): ModelType | undefined {
-    const columns = SQL.join([${columns
-      .map((c) => `SQL.id(${lit(c.name)})`)
-      .join(", ")}], ", ");
-    const parts: SQL.Template[] = [ SQL.empty ];
-    if (args?.where !== undefined) parts.push(SQL\`WHERE \${${formatWhereFunc}(Runtime.Namespace.root(${lit(schema.tableName)}), args.where)}\`);
-    if (args?.orderBy !== undefined) parts.push(Runtime.makeOrderBy(args.orderBy));
-    parts.push(SQL\`LIMIT 1\`);
-    if (args?.offset !== undefined) parts.push(SQL\`OFFSET \${args.offset}\`);
-    const row = this.$db.get(
-      SQL\`SELECT \${columns} FROM ${sqlId(schema.tableName)}\${SQL.join(parts, " ")}\`
-    );
-    if (!row) return undefined;
-    return this.transform(${parseFunc}(row));
+    return this.findMany({ ...args, limit: 1 })[0];
   }
 
   findMany(args?: ${findManyArgsType}): ModelType[] {

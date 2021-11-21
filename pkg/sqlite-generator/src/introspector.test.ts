@@ -22,7 +22,8 @@ describe("introspectDatabase", () => {
         "createdAt" TEXT NOT NULL,
         "updatedAt" TEXT NOT NULL,
         "n" INTEGER,
-        "label" TEXT NOT NULL
+        "label" TEXT NOT NULL,
+        "labelLength" INTEGER NOT NULL GENERATED ALWAYS AS (LENGTH(label))
       );`);
     const schema = introspectDatabase(db);
     expect(schema).toEqual(
@@ -37,6 +38,7 @@ describe("introspectDatabase", () => {
             updatedAt: s.text(),
             n: s.integer().nullable(),
             label: s.text(),
+            labelLength: s.integer().generatedAs("LENGTH(label)"),
           })
           .inTable("tbl"),
       })

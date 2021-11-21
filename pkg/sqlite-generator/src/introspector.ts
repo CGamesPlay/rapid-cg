@@ -68,6 +68,10 @@ export function introspectDatabase(db: Database): DatabaseSchema {
       }
       if (opts.indexOf("UNIQUE") !== -1) col = col.unique();
       if (opts.indexOf("NOT NULL") === -1) col = col.nullable();
+      const m = /GENERATED ALWAYS AS \((.*)\)/.exec(opts);
+      if (m !== null) {
+        col = col.generatedAs(m[1].trim());
+      }
       modelParams[name] = col;
     });
     keyDefs.forEach((def, i) => {

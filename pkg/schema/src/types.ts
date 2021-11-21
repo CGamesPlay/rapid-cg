@@ -10,6 +10,7 @@ export const ColumnAny = z.object({
   primary: z.boolean().optional(),
   unique: z.boolean().optional(),
   nullable: z.boolean().optional(),
+  generatedAs: z.string().optional(),
 });
 export type ColumnAny = z.infer<typeof ColumnAny>;
 

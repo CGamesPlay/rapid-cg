@@ -10,6 +10,7 @@ describe("Database", () => {
           updatedAt: s.date().updatedAt(),
           text: s.text().default("text"),
           extra: s.text(),
+          textLength: s.integer().generatedAs("LENGTH(text)"),
         }),
       })
     ).toEqual({
@@ -21,6 +22,7 @@ describe("Database", () => {
             updatedAt: expect.anything(),
             text: expect.anything(),
             extra: expect.anything(),
+            textLength: expect.anything(),
           },
           relations: {},
           name: "Todo",

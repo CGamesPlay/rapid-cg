@@ -23,6 +23,7 @@ export type WhereDoc = {
   isActive?: Runtime.WhereBoolean;
   parentId?: Runtime.WhereUuid;
   content?: Runtime.WhereString;
+  contentLength?: Runtime.WhereNumber;
   parent?: Runtime.WhereOneRelated<WhereDoc>;
   children?: Runtime.WhereManyRelated<WhereDoc>;
   AND?: Runtime.MaybeArray<WhereDoc>;
@@ -39,6 +40,7 @@ export const WhereDoc: z.ZodSchema<WhereDoc> = z.lazy(() =>
       isActive: Runtime.WhereBoolean.optional(),
       parentId: Runtime.WhereUuid.optional(),
       content: Runtime.WhereString.optional(),
+      contentLength: Runtime.WhereNumber.optional(),
       parent: Runtime.WhereOneRelated(WhereDoc).optional(),
       children: Runtime.WhereManyRelated(WhereDoc).optional(),
       AND: Runtime.MaybeArray(WhereDoc).optional(),
@@ -56,6 +58,7 @@ export const OrderDocBy = z.object({
   isActive: Runtime.SortOrder.optional(),
   parentId: Runtime.SortOrder.optional(),
   content: Runtime.SortOrder.optional(),
+  contentLength: Runtime.SortOrder.optional(),
 });
 export type OrderDocBy = z.infer<typeof OrderDocBy>;
 
@@ -151,6 +154,14 @@ const formatWhereDoc = Runtime.makeWhereChainable(
         Runtime.formatWhereString(
           SQL`${alias}.${SQL.id("content")}`,
           where.content
+        )
+      );
+    }
+    if (where.contentLength !== undefined) {
+      components.push(
+        Runtime.formatWhereNumber(
+          SQL`${alias}.${SQL.id("contentLength")}`,
+          where.contentLength
         )
       );
     }
@@ -252,33 +263,7 @@ export class DocClient<
   ModelType = Doc
 > extends Runtime.GenericClient<ModelType> {
   findFirst(args?: FindFirstDocArgs): ModelType | undefined {
-    const columns = SQL.join(
-      [
-        SQL.id("rowid"),
-        SQL.id("id"),
-        SQL.id("createdAt"),
-        SQL.id("updatedAt"),
-        SQL.id("isActive"),
-        SQL.id("parentId"),
-        SQL.id("content"),
-        SQL.id("extra"),
-      ],
-      ", "
-    );
-    const parts: SQL.Template[] = [SQL.empty];
-    if (args?.where !== undefined)
-      parts.push(
-        SQL`WHERE ${formatWhereDoc(Runtime.Namespace.root("tbl"), args.where)}`
-      );
-    if (args?.orderBy !== undefined)
-      parts.push(Runtime.makeOrderBy(args.orderBy));
-    parts.push(SQL`LIMIT 1`);
-    if (args?.offset !== undefined) parts.push(SQL`OFFSET ${args.offset}`);
-    const row = this.$db.get(
-      SQL`SELECT ${columns} FROM "tbl"${SQL.join(parts, " ")}`
-    );
-    if (!row) return undefined;
-    return this.transform(parseDoc(row));
+    return this.findMany({ ...args, limit: 1 })[0];
   }
 
   findMany(args?: FindManyDocArgs): ModelType[] {
@@ -291,6 +276,7 @@ export class DocClient<
         SQL.id("isActive"),
         SQL.id("parentId"),
         SQL.id("content"),
+        SQL.id("contentLength"),
         SQL.id("extra"),
       ],
       ", "
