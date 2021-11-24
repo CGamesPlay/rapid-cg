@@ -3,7 +3,7 @@ import pluralize from "pluralize";
 
 import * as T from "./types.js";
 
-class ColumnAnyBuilder<DefaultType = never> {
+export class ColumnAnyBuilder<DefaultType = never> {
   result: Omit<T.Column, "name">;
 
   constructor(input: Omit<T.Column, "name">) {
@@ -42,9 +42,9 @@ class ColumnAnyBuilder<DefaultType = never> {
   }
 }
 
-class ColumnBoolBuilder extends ColumnAnyBuilder<boolean> {}
+export class ColumnBoolBuilder extends ColumnAnyBuilder<boolean> {}
 
-class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
+export class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
   mode: undefined | "createdAt" | "updatedAt";
 
   createdAt(): this {
@@ -56,13 +56,13 @@ class ColumnDateBuilder extends ColumnAnyBuilder<Date> {
   }
 }
 
-class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
+export class ColumnIntegerBuilder extends ColumnAnyBuilder<number | bigint> {
   autoincrement(): this {
     return this.withProperties({ primary: "autoincrement" });
   }
 }
 
-class ColumnUuidBuilder extends ColumnAnyBuilder<string> {
+export class ColumnUuidBuilder extends ColumnAnyBuilder<string> {
   autogenerate(autogenerate = true): this {
     return this.withProperties({ autogenerate });
   }
@@ -114,6 +114,10 @@ class ModelBuilder {
 }
 
 export const s = {
+  blob(): ColumnAnyBuilder<Buffer> {
+    return new ColumnAnyBuilder({ type: "blob" });
+  },
+
   boolean(): ColumnBoolBuilder {
     return new ColumnBoolBuilder({ type: "boolean" });
   },

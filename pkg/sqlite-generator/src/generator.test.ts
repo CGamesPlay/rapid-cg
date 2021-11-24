@@ -7,6 +7,7 @@ describe("generateClient", () => {
     const schema = s.database({
       tbl: s.model({
         text: s.text().default("a string"),
+        blob: s.blob(),
         boolean: s.boolean().default(false),
         nullableBoolean: s.boolean().nullable(),
         integer: s.integer().default(100),

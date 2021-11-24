@@ -75,19 +75,19 @@ const comparisonOps = {
   lte: "<=",
 };
 
-function formatWhereScalar<T extends string | number | bigint>(
+function formatWhereScalar<T extends string | number | bigint | Buffer>(
   column: SQL.Template,
   where: WhereScalar<T>
 ): SQL.Template[];
 function formatWhereScalar<T>(
   column: SQL.Template,
   where: WhereScalar<T>,
-  convert: (val: T) => string | number | bigint | SQL.Template
+  convert: (val: T) => string | number | bigint | Buffer | SQL.Template
 ): SQL.Template[];
 function formatWhereScalar<T>(
   column: SQL.Template,
   where: WhereScalar<T>,
-  convert?: (val: T) => string | number | bigint | SQL.Template
+  convert?: (val: T) => string | number | bigint | Buffer | SQL.Template
 ): SQL.Template[] {
   const parts: SQL.Template[] = [];
   const C = convert ?? (((x: any) => x) as any);
@@ -122,6 +122,25 @@ function formatWhereScalar<T>(
     );
   }
   return parts;
+}
+
+export const WhereBlob = z.union([
+  z.instanceof(Buffer),
+  z.null(),
+  WhereScalar(z.instanceof(Buffer)),
+]);
+export type WhereBlob = Buffer | null | WhereScalar<Buffer>;
+
+export function formatWhereBlob(
+  column: SQL.Template,
+  where: WhereBlob
+): SQL.Template {
+  if (where instanceof Buffer || where === null) {
+    where = { equals: where };
+  }
+  const parts: SQL.Template[] = formatWhereScalar(column, where);
+  if (parts.length === 0) return SQL`1 = 1`;
+  return SQL.join(parts, " AND ");
 }
 
 export const WhereString = z.union([

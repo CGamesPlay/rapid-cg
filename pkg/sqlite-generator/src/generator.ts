@@ -20,6 +20,8 @@ function sqlId(id: string): string {
 function columnSchema(column: Column): string {
   const orNull = column.nullable ? ".nullable()" : "";
   switch (column.type) {
+    case "blob":
+      return "z.instanceof(Buffer)" + orNull;
     case "boolean":
       return "z.boolean()" + orNull;
     case "date":
@@ -40,6 +42,8 @@ function columnSchema(column: Column): string {
 
 function columnWhereType(column: Column): string {
   switch (column.type) {
+    case "blob":
+      return "Runtime.WhereBlob";
     case "boolean":
       return "Runtime.WhereBoolean";
     case "date":
@@ -93,6 +97,8 @@ function columnFormatWhere(column: Column): string {
     column.name
   })`;
   switch (column.type) {
+    case "blob":
+      return `Runtime.formatWhereBlob${args}`;
     case "boolean":
       return `Runtime.formatWhereBoolean${args}`;
     case "date":
@@ -134,6 +140,8 @@ function relationFormatWhere(relation: Relation): string {
 function columnParse(column: Column): string {
   const orNull = column.nullable ? " | null" : "";
   switch (column.type) {
+    case "blob":
+      return `row.${column.name} as Buffer${orNull}`;
     case "boolean": {
       const parse = `row.${column.name} != 0`;
       if (!column.nullable) return parse;
@@ -156,14 +164,15 @@ function columnParse(column: Column): string {
 
 function columnSerialize(column: Column): string {
   switch (column.type) {
-    case "boolean":
-      return `obj[key] === null ? null : +obj[key]!`;
-    case "date":
-      return `obj[key]?.toISOString()`;
+    case "blob":
     case "integer":
     case "text":
     case "uuid":
       return `obj[key]`;
+    case "boolean":
+      return `obj[key] === null ? null : +obj[key]!`;
+    case "date":
+      return `obj[key]?.toISOString()`;
     case "json":
       return `JSON.stringify(obj[key])`;
     /* istanbul ignore next */

@@ -11,7 +11,8 @@
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
     "pluralize": "^8.0.0",
-    "prettier": "^2.4.1"
+    "prettier": "^2.4.1",
+    "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.176",

@@ -14,6 +14,7 @@ const database = s.database({
       content: s.text(),
       contentLength: s.integer().generatedAs("LENGTH(content)"),
       extra: s.json().default({}),
+      //blob: s.blob().nullable(),
       parent: s.belongsTo("parentId", "Doc", "id"),
       children: s.hasMany("id", "Doc", "parentId"),
     })

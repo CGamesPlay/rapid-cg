@@ -8,7 +8,7 @@
     "better-sqlite3": "^7.4.3",
     "sql-template-tag": "^4.0.0",
     "uuid": "^8.3.2",
-    "zod": "^3.11.2"
+    "zod": "^3.11.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.4.0",

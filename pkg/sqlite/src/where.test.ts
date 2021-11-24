@@ -2,6 +2,7 @@ import { v4 } from "uuid";
 
 import SQL from "./tag.js";
 import {
+  formatWhereBlob,
   WhereBoolean,
   formatWhereBoolean,
   WhereString,
@@ -50,6 +51,20 @@ describe("formatWhereScalar", () => {
     expect(formatWhereString(col, { equals: null, not: null })).toEqualSQL(
       SQL`${col} IS NULL AND ${col} IS NOT NULL`
     );
+  });
+});
+
+describe("formatWhereBlob", () => {
+  it("handles simple equality", () => {
+    expect(formatWhereBlob(col, Buffer.alloc(1, 255))).toEqualSQL(
+      SQL`${col} = ${Buffer.alloc(1, 255)}`
+    );
+  });
+  it("handles simple null", () => {
+    expect(formatWhereBlob(col, null)).toEqualSQL(SQL`${col} IS NULL`);
+  });
+  it("handler empty clauses", () => {
+    expect(formatWhereBlob(col, {})).toEqualSQL(SQL`1 = 1`);
   });
 });
 

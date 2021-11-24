@@ -36,6 +36,7 @@ describe("generateMigration", () => {
       from: s.database({}),
       to: s.database({
         User: s.model({
+          blob: s.blob(),
           boolean: s.boolean(),
           date: s.date(),
           integer: s.integer(),
@@ -47,6 +48,7 @@ describe("generateMigration", () => {
     });
     expect(src).toMatchInlineSnapshot(`
       "CREATE TABLE \\"users\\" (
+        \\"blob\\" BLOB NOT NULL,
         \\"boolean\\" INTEGER NOT NULL,
         \\"date\\" TEXT NOT NULL,
         \\"integer\\" INTEGER NOT NULL,

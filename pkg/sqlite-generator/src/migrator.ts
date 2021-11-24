@@ -6,14 +6,16 @@ function id(val: string) {
 
 function columnType(column: Column): string {
   switch (column.type) {
+    case "blob":
+      return "BLOB";
+    case "boolean":
+    case "integer":
+      return "INTEGER";
     case "date":
     case "json":
     case "text":
     case "uuid":
       return "TEXT";
-    case "boolean":
-    case "integer":
-      return "INTEGER";
     /* istanbul ignore next */
     default:
       throw new Error(`Unsupported column type ${(column as any).type}`);

@@ -14,6 +14,12 @@ export const ColumnAny = z.object({
 });
 export type ColumnAny = z.infer<typeof ColumnAny>;
 
+export const ColumnBlob = ColumnAny.extend({
+  type: z.literal("blob"),
+  default: z.instanceof(Buffer).optional(),
+});
+export type ColumnBlob = z.infer<typeof ColumnBlob>;
+
 export const ColumnBoolean = ColumnAny.extend({
   type: z.literal("boolean"),
   default: z.boolean().optional(),
@@ -54,6 +60,7 @@ export const ColumnUuid = ColumnAny.extend({
 export type ColumnUuid = z.infer<typeof ColumnUuid>;
 
 export const Column = z.union([
+  ColumnBlob,
   ColumnBoolean,
   ColumnDate,
   ColumnInteger,

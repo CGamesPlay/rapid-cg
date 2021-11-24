@@ -45,6 +45,26 @@ describe("introspectDatabase", () => {
     );
   });
 
+  it("parses default values", () => {
+    const db = new Database(":memory:");
+    db.run(SQL`
+      CREATE TABLE "values" (
+        "blob" BLOB NOT NULL DEFAULT x'deadbeef',
+        "integer" INTEGER NOT NULL DEFAULT 42,
+        "text" TEXT NOT NULL DEFAULT 'it''s text'
+      );`);
+    const schema = introspectDatabase(db);
+    expect(schema).toEqual(
+      s.database({
+        Value: s.model({
+          blob: s.blob().default(Buffer.from("deadbeef", "hex")),
+          integer: s.integer().default(42),
+          text: s.text().default("it's text"),
+        }),
+      })
+    );
+  });
+
   it("understands foreign keys", () => {
     const db = new Database(":memory:");
     db.run(SQL`

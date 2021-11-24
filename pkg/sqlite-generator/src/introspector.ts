@@ -1,7 +1,13 @@
 import _ from "lodash";
 import pluralize from "pluralize";
-import { s, DatabaseSchema } from "@rad/schema";
+import {
+  s,
+  DatabaseSchema,
+  ColumnAnyBuilder,
+  ColumnIntegerBuilder,
+} from "@rad/schema";
 import { Database, SQL } from "@rad/sqlite";
+import invariant from "tiny-invariant";
 
 function tokenizeWords(val: string): Array<string> {
   const ret: string[] = [];
@@ -11,9 +17,15 @@ function tokenizeWords(val: string): Array<string> {
     /* istanbul ignore next */
     if (val === "") break;
     if (val[0] === '"') {
-      const wordEnd = val.slice(1).search(/"(?!")/) + 1;
-      ret.push(val.substring(1, wordEnd).replace(/""/g, '"'));
-      val = val.slice(wordEnd + 1);
+      let match = /"(([^"]+|"")*)"/.exec(val);
+      invariant(match);
+      ret.push(match[1]);
+      val = val.slice(match[0].length);
+    } else if (val[0] === "'") {
+      let match = /'([^']+|'')*'/.exec(val);
+      invariant(match);
+      ret.push(match[0]);
+      val = val.slice(match[0].length);
     } else {
       const wordEnd = val.indexOf(" ");
       if (wordEnd === -1) {
@@ -25,6 +37,23 @@ function tokenizeWords(val: string): Array<string> {
     }
   }
   return ret;
+}
+
+function parseDefault(col: ColumnAnyBuilder<unknown>, val: string) {
+  switch (col.result.type) {
+    case "blob":
+      invariant(val[0].toUpperCase() === "X");
+      return col.default(
+        Buffer.from(val.substring(2, val.length - 1).replace(/''/g, "'"), "hex")
+      );
+    case "integer":
+      return col.default(parseInt(val, 10));
+    case "text":
+      return col.default(val.substring(1, val.length - 1).replace(/''/g, "'"));
+    /* istanbul ignore next */
+    default:
+      throw new Error(`Unsupported column type ${col.result.type}`);
+  }
 }
 
 export function introspectDatabase(db: Database): DatabaseSchema {
@@ -53,21 +82,33 @@ export function introspectDatabase(db: Database): DatabaseSchema {
       const opts = def.slice(2).join(" ");
 
       let col: any;
-      if (type === "INTEGER") {
+      if (type === "BLOB") {
+        col = s.blob();
+      } else if (type === "INTEGER") {
         col = s.integer();
-        if (opts.indexOf("AUTOINCREMENT") !== -1) col = col.autoincrement();
-        else if (opts.indexOf("PRIMARY KEY") !== -1) col = col.primary();
       } else if (type === "TEXT") {
         col = s.text();
-        if (opts.indexOf("PRIMARY KEY") !== -1) col = col.primary();
       } else {
         /* istanbul ignore next */
         throw new Error(
           `unsupported column type on ${t.name}.${name}: ${type}`
         );
       }
+      if (opts.indexOf("AUTOINCREMENT") !== -1) {
+        col = (col as ColumnIntegerBuilder).autoincrement();
+      } else if (opts.indexOf("PRIMARY KEY") !== -1) {
+        col = col.primary();
+      }
       if (opts.indexOf("UNIQUE") !== -1) col = col.unique();
       if (opts.indexOf("NOT NULL") === -1) col = col.nullable();
+      if (opts.indexOf("DEFAULT") !== -1) {
+        const idx = def.indexOf("DEFAULT");
+        /* istanbul ignore next */
+        if (def[idx + 1] === "(") {
+          throw new Error(`unsupported default value ${t.name}.${name}`);
+        }
+        col = parseDefault(col, def[idx + 1]);
+      }
       const m = /GENERATED ALWAYS AS \((.*)\)/.exec(opts);
       if (m !== null) {
         col = col.generatedAs(m[1].trim());
@@ -75,6 +116,7 @@ export function introspectDatabase(db: Database): DatabaseSchema {
       modelParams[name] = col;
     });
     keyDefs.forEach((def, i) => {
+      /* istanbul ignore next */
       if (
         def.length !== 10 ||
         def[2] !== "(" ||
@@ -83,7 +125,6 @@ export function introspectDatabase(db: Database): DatabaseSchema {
         def[7] !== "(" ||
         def[9] !== ")"
       ) {
-        /* istanbul ignore next */
         throw new Error(`unsupported foreign key: ${JSON.stringify(def)}`);
       }
       const name = _.upperFirst(pluralize.singular(def[6]));
