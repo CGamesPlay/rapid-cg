@@ -1,14 +1,14 @@
 {
-  "name": "@rad/cli",
+  "name": "@rapid-cg/cli",
   "version": "0.5.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "rad": "dist/cli.js"
+    "rapid-cg": "dist/cli.js"
   },
   "license": "MIT",
   "dependencies": {
-    "@rad/schema": "0.5.0",
+    "@rapid-cg/schema": "0.5.0",
     "commander": "^8.3.0",
     "ts-node": "^10.4.0"
   },

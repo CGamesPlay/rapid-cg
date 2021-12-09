@@ -1,5 +1,5 @@
 import path from "path";
-import { Config } from "@rad/schema";
+import { Config } from "@rapid-cg/schema";
 
 import { register } from "ts-node";
 

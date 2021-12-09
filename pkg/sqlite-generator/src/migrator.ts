@@ -1,4 +1,4 @@
-import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rapid-cg/schema";
 
 function id(val: string) {
   return `"${val.replace(/"/g, '""')}"`;

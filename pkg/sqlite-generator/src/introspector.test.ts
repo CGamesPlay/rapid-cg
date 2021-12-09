@@ -1,5 +1,5 @@
-import { s } from "@rad/schema";
-import { Database, SQL } from "@rad/sqlite";
+import { s } from "@rapid-cg/schema";
+import { Database, SQL } from "@rapid-cg/sqlite";
 
 import { introspectDatabase } from "./introspector.js";
 import { generateMigration } from "./migrator.js";

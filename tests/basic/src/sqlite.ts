@@ -1,4 +1,4 @@
-import { z } from "@rad/sqlite";
+import { z } from "@rapid-cg/sqlite";
 import {
   createClient as createUnrefinedClient,
   Doc as BaseDoc,

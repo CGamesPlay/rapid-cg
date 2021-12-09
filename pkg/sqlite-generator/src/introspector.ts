@@ -5,8 +5,8 @@ import {
   DatabaseSchema,
   ColumnAnyBuilder,
   ColumnIntegerBuilder,
-} from "@rad/schema";
-import { Database, SQL } from "@rad/sqlite";
+} from "@rapid-cg/schema";
+import { Database, SQL } from "@rapid-cg/sqlite";
 import invariant from "tiny-invariant";
 
 function tokenizeWords(val: string): Array<string> {

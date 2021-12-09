@@ -1,4 +1,4 @@
-import { s } from "@rad/schema";
+import { s } from "@rapid-cg/schema";
 
 import { generateClient } from "./generator.js";
 

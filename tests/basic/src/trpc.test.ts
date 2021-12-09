@@ -4,7 +4,7 @@ import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { createTRPCClient } from "@trpc/client";
 import fetch from "node-fetch-commonjs";
 import { expectType } from "ts-expect";
-import * as Runtime from "@rad/sqlite";
+import * as Runtime from "@rapid-cg/sqlite";
 
 import { client } from "./testUtils.js";
 import { appRouter, AppRouter } from "./trpc.js";

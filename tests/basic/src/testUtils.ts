@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { SQL } from "@rad/sqlite";
+import { SQL } from "@rapid-cg/sqlite";
 
 import { createClient, Client } from "./sqlite.js";
 

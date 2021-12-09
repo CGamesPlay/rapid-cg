@@ -6,7 +6,7 @@ import { generatedBanner, writeGeneratedFile } from "./utils.js";
 
 describe("writeGeneratedFile", () => {
   const content = generatedBanner("the tests");
-  const target = path.join(os.tmpdir(), "rad-test-file.txt");
+  const target = path.join(os.tmpdir(), "rapid-cg-test-file.txt");
 
   beforeEach(async () => {
     await fs.promises.unlink(target).catch((e) => {
@@ -43,7 +43,7 @@ describe("writeGeneratedFile", () => {
   it("handles other errors", async () => {
     await expect(
       writeGeneratedFile(
-        path.join(os.tmpdir(), "rad-not-dir/file.txt"),
+        path.join(os.tmpdir(), "rapid-cg-not-dir/file.txt"),
         content
       )
     ).rejects.toThrow("ENOENT");

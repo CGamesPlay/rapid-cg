@@ -1,4 +1,4 @@
-import { SQL, randomUuid } from "@rad/sqlite";
+import { SQL, randomUuid } from "@rapid-cg/sqlite";
 import { expectType } from "ts-expect";
 
 import { client } from "./testUtils.js";

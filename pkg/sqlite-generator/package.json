@@ -1,12 +1,12 @@
 {
-  "name": "@rad/sqlite-generator",
+  "name": "@rapid-cg/sqlite-generator",
   "version": "0.5.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "dependencies": {
-    "@rad/schema": "0.5.0",
-    "@rad/sqlite": "0.5.0",
+    "@rapid-cg/schema": "0.5.0",
+    "@rapid-cg/sqlite": "0.5.0",
     "commander": "^8.3.0",
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",

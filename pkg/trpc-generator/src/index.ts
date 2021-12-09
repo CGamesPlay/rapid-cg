@@ -4,7 +4,7 @@ import {
   Generator,
   generatedBanner,
   writeGeneratedFile,
-} from "@rad/schema";
+} from "@rapid-cg/schema";
 
 import { generateServer } from "./generator.js";
 
@@ -18,9 +18,9 @@ export default function trpcGenerator(opts: Options): Generator {
     throw new Error("serverFilename must be absolute");
   }
   return {
-    name: "@rad/trpc-generator",
+    name: "@rapid-cg/trpc-generator",
     generate(config: Config) {
-      const banner = generatedBanner("@rad/trpc-generator");
+      const banner = generatedBanner("@rapid-cg/trpc-generator");
       const source = generateServer(config.database, opts.clientImport);
       return writeGeneratedFile(opts.serverFilename, banner + "\n" + source);
     },

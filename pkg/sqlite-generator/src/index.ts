@@ -6,8 +6,8 @@ import {
   Generator,
   generatedBanner,
   writeGeneratedFile,
-} from "@rad/schema";
-import { SQL, Database } from "@rad/sqlite";
+} from "@rapid-cg/schema";
+import { SQL, Database } from "@rapid-cg/sqlite";
 
 import { introspectDatabase } from "./introspector.js";
 import { generateMigration } from "./migrator.js";
@@ -45,9 +45,9 @@ export default function sqliteGenerator(opts: Options): Generator {
     throw new Error("migrationsPath must be absolute");
   }
   return {
-    name: "@rad/sqlite-generator",
+    name: "@rapid-cg/sqlite-generator",
     generate(config: Config) {
-      const banner = generatedBanner("@rad/sqlite-generator");
+      const banner = generatedBanner("@rapid-cg/sqlite-generator");
       const source = generateClient(config.database);
       return writeGeneratedFile(opts.clientFilename, banner + "\n" + source);
     },
@@ -85,7 +85,7 @@ export default function sqliteGenerator(opts: Options): Generator {
             return;
           }
           const migrateDown = generateMigration({ from: to, to: from });
-          const banner = generatedBanner("@rad/sqlite-generator", "--");
+          const banner = generatedBanner("@rapid-cg/sqlite-generator", "--");
           const source = `-- migrate:up\n${migrateUp}\n\n-- migrate:down\n${migrateDown}\n`;
           mkdirp.sync(opts.migrationsPath);
           await writeGeneratedFile(filename, banner + "\n" + source);

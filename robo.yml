@@ -1,3 +1,11 @@
+link:
+  summary: set up all necessary symlinks for local development
+  command: |
+    mkdir -p node_modules/@rapid-cg
+    for pkg in pkg/*; do
+      ln -sf ../../$pkg node_modules/@rapid-cg/$(basename $pkg)
+    done
+
 depcheck:
   summary: run depcheck on every package
   command: |

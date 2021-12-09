@@ -1,7 +1,7 @@
 import _ from "lodash";
 import pluralize from "pluralize";
 import prettier from "prettier";
-import { s, DatabaseSchema, ModelSchema } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema } from "@rapid-cg/schema";
 
 type ModelInfo = {
   name: string;

@@ -7,7 +7,7 @@ export * from "./schema.js";
 export * from "./utils.js";
 
 export interface Generator {
-  // Should correspond to the package name, e.g. "@rad/sqlite-generator"
+  // Should correspond to the package name, e.g. "@rapid-cg/sqlite-generator"
   name: string;
   // Runs this generator.
   generate?(config: Config): Promise<void>;

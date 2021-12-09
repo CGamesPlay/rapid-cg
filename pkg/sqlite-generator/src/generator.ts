@@ -1,7 +1,7 @@
 import _ from "lodash";
 import pluralize from "pluralize";
 import prettier from "prettier";
-import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rad/schema";
+import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rapid-cg/schema";
 
 function lit(val: unknown): string {
   if (typeof val === "bigint") {
@@ -459,8 +459,8 @@ export function generateClient(schema: DatabaseSchema): string {
   ];
   // prettier-ignore
   const src = `
-import * as Runtime from "@rad/sqlite";
-import { SQL, z } from "@rad/sqlite";
+import * as Runtime from "@rapid-cg/sqlite";
+import { SQL, z } from "@rapid-cg/sqlite";
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 

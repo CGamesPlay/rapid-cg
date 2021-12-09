@@ -1,7 +1,7 @@
 import * as path from "path";
-import { s, Config } from "@rad/schema";
-import sqliteGenerator from "@rad/sqlite-generator";
-import trpcGenerator from "@rad/trpc-generator";
+import { s, Config } from "@rapid-cg/schema";
+import sqliteGenerator from "@rapid-cg/sqlite-generator";
+import trpcGenerator from "@rapid-cg/trpc-generator";
 
 const database = s.database({
   Doc: s

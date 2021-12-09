@@ -60,7 +60,8 @@ const outerProgram = makeProgram()
       if (!generator.commands) return;
       let name = generator.name;
       if (name.endsWith("-generator")) name = name.substr(0, name.length - 10);
-      if (name.startsWith("@rad/")) name = name.substr(5);
+      if (name.startsWith("@rapid-cg/"))
+        name = name.substr("@rapid-cg/".length);
       const group = program
         .command(name)
         .description(`commands relating to ${generator.name}`);
