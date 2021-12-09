@@ -7,6 +7,11 @@
     "rapid-cg": "dist/cli.js"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CGamesPlay/rapid-cg.git",
+    "directory": "pkg/cli"
+  },
   "dependencies": {
     "@rapid-cg/schema": "0.5.0",
     "commander": "^8.3.0",

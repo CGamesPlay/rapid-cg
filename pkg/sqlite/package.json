@@ -4,6 +4,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CGamesPlay/rapid-cg.git",
+    "directory": "pkg/sqlite"
+  },
   "dependencies": {
     "better-sqlite3": "^7.4.3",
     "sql-template-tag": "^4.0.0",

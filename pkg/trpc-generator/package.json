@@ -4,6 +4,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CGamesPlay/rapid-cg.git",
+    "directory": "pkg/trpc-generator"
+  },
   "dependencies": {
     "@rapid-cg/schema": "0.5.0",
     "lodash": "^4.17.21",
