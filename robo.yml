@@ -9,7 +9,7 @@ link:
 depcheck:
   summary: run depcheck on every package
   command: |
-    set -ueio pipefail
+    set -uei
     for pkg in pkg/* tests/*; do (
       echo "Checking $pkg"
       cd "$pkg"
@@ -19,14 +19,14 @@ depcheck:
 build:
   summary: build the application
   command: |
-    set -ueio pipefail
+    set -uei
     tsc -b .
     chmod +x pkg/cli/dist/cli.js
 
 build-tests:
   summary: run the build steps on the tests
   command: |
-    set -ueio pipefail
+    set -ueix
     robo build
     root=$(pwd)
     for case in tests/*; do (
@@ -43,6 +43,6 @@ build-tests:
 test-full:
   summary: run all tests
   command: |
-    set -ueio pipefail
+    set -uei
     robo build-tests
     jest --coverage
