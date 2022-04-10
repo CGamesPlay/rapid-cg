@@ -345,12 +345,12 @@ export class DocClient<
   }
 }
 
-export type Client<R> = {
+export type Client<R = Record<string, never>> = {
   $db: Runtime.Database;
   docs: DocClient<R extends { docs: unknown } ? R["docs"] : Doc>;
 };
 
-export function createClient<R>(
+export function createClient<R = Record<string, never>>(
   filename: string,
   options?: Runtime.Database.Options
 ): Client<R> {

@@ -470,14 +470,14 @@ import { SQL, z } from "@rapid-cg/sqlite";
 
 ${modelInfo.map((t) => t.source).join("\n\n")}
 
-export type Client<R> = {
+export type Client<R = Record<string, never>> = {
   $db: Runtime.Database;
   ${modelInfo.map((m) =>
     `${m.clientName}: ${m.clientType}<R extends { "${m.clientName}": unknown } ? R["${m.clientName}"] : ${m.modelType}>;`
   ).join("\n")}
 };
 
-export function createClient<R>(
+export function createClient<R = Record<string, never>>(
   filename: string,
   options?: Runtime.Database.Options
 ): Client<R> {
