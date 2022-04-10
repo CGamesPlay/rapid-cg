@@ -30,6 +30,8 @@ yarn add -D @rapid-cg/cli @rapid-cg/schema @rapid-cg/sqlite-generator
 yarn add @rapid-cg/sqlite
 ```
 
+You also need to verify that your `tsconfig.json` specifies `"target": "es2020"` or later.
+
 **Write your schema.** The next step is to specify your schema. This is done by writing a `schema.ts` file in the root of your repository. A simple example might look like this:
 
 ```typescript
