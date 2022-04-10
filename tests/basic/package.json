@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@rapid-cg/schema": "0.5.0",
-    "@rapid-cg/sqlite-generator": "0.5.0",
+    "@rapid-cg/sqlite-generator": "0.5.1",
     "@rapid-cg/trpc-generator": "0.5.0",
     "@trpc/client": "^9.10.1",
     "node-fetch-commonjs": "^3.0.3",
