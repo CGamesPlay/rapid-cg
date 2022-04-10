@@ -356,5 +356,5 @@ export function createClient<R>(
 ): Client<R> {
   return Runtime.createClient(filename, options, {
     docs: DocClient,
-  });
+  }) as Client<R>;
 }

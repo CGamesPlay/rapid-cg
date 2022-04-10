@@ -1,7 +1,13 @@
 import _ from "lodash";
 import pluralize from "pluralize";
 import prettier from "prettier";
-import { s, DatabaseSchema, ModelSchema, Column, Relation } from "@rapid-cg/schema";
+import {
+  s,
+  DatabaseSchema,
+  ModelSchema,
+  Column,
+  Relation,
+} from "@rapid-cg/schema";
 
 function lit(val: unknown): string {
   if (typeof val === "bigint") {
@@ -477,7 +483,7 @@ export function createClient<R>(
 ): Client<R> {
   return Runtime.createClient(filename, options, {
     ${modelInfo.map((m) => `${m.clientName}: ${m.clientType},`).join("\n")}
-  });
+  }) as Client<R>;
 }`;
   return prettier.format(src, { parser: "typescript" });
 }
