@@ -6,7 +6,9 @@ describe("Database", () => {
   beforeAll(() => {
     db = new Database(":memory:");
     db.run(SQL`CREATE TABLE tbl ( col TEXT )`);
-    const ret = db.run(SQL`INSERT INTO tbl VALUES ( ${"row 1"} )`);
+    const ret = db.run(
+      SQL`INSERT INTO tbl VALUES ( ${"row 1"} ), ( ${"row 2"} )`
+    );
   });
 
   beforeEach(() => {
@@ -29,15 +31,23 @@ describe("Database", () => {
 
   test(".all", () => {
     const ret = db.all(SQL`SELECT rowid, col FROM tbl`);
-    expect(ret).toEqual([{ rowid: expect.any(Number), col: "row 1" }]);
+    expect(ret).toEqual([
+      { rowid: expect.any(Number), col: "row 1" },
+      { rowid: expect.any(Number), col: "row 2" },
+    ]);
   });
 
   test(".iterate", () => {
     const iter = db.iterate(SQL`SELECT rowid, col FROM tbl`);
-    for (let row of iter) {
-      expect(row).toEqual({ rowid: expect.any(Number), col: "row 1" });
-    }
-    expect.assertions(1);
+    expect(iter.next()).toEqual({
+      done: false,
+      value: { rowid: expect.any(Number), col: "row 1" },
+    });
+    expect(iter.next()).toEqual({
+      done: false,
+      value: { rowid: expect.any(Number), col: "row 2" },
+    });
+    expect(iter.next()).toEqual({ done: true });
   });
 
   test(".pluckOne", () => {
@@ -47,6 +57,6 @@ describe("Database", () => {
 
   test(".pluckAll", () => {
     const ret = db.pluckAll(SQL`SELECT col FROM tbl`);
-    expect(ret).toEqual(["row 1"]);
+    expect(ret).toEqual(["row 1", "row 2"]);
   });
 });
