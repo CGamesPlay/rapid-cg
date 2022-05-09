@@ -1,6 +1,6 @@
 import BaseDatabase from "better-sqlite3";
 
-import SQL from "./tag.js";
+import type SQL from "./tag.js";
 
 export declare namespace Database {
   type RunResult = BaseDatabase.RunResult;

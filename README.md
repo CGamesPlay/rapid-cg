@@ -27,10 +27,10 @@ You can see an example project in [tests/basic](https://github.com/CGamesPlay/ra
 
 ```bash
 yarn add -D @rapid-cg/cli @rapid-cg/schema @rapid-cg/sqlite-generator
-yarn add @rapid-cg/sqlite
+yarn add @rapid-cg/sqlite zod
 ```
 
-You also need to verify that your `tsconfig.json` specifies `"target": "es2020"` or later.
+You also need to verify that your `tsconfig.json` specifies `"target": "es2019"` or later, because the code generation requires ES6 classes.
 
 **Write your schema.** The next step is to specify your schema. This is done by writing a `schema.ts` file in the root of your repository. A simple example might look like this:
 

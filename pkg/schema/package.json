@@ -1,6 +1,6 @@
 {
   "name": "@rapid-cg/schema",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "pkg/schema"
   },
   "dependencies": {
-    "commander": "^8.3.0",
+    "commander": "^9.2.0",
     "lodash": "^4.17.21",
     "pluralize": "^8.0.0",
     "zod": "^3.11.6"
@@ -18,5 +18,14 @@
   "devDependencies": {
     "@types/lodash": "^4.14.176",
     "@types/pluralize": "^0.0.29"
-  }
+  },
+  "peerDependencies": {
+    "zod": "^3.11.6"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "dist"
+  ]
 }

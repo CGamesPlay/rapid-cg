@@ -1,6 +1,6 @@
 {
   "name": "@rapid-cg/cli",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -13,9 +13,13 @@
     "directory": "pkg/cli"
   },
   "dependencies": {
-    "@rapid-cg/schema": "0.5.0",
-    "commander": "^8.3.0",
-    "ts-node": "^10.4.0"
+    "@rapid-cg/schema": "^1.0.0",
+    "commander": "^9.2.0",
+    "ts-node": "^10.4.0",
+    "zod": "^3.11.6"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "files": [
+    "dist"
+  ]
 }

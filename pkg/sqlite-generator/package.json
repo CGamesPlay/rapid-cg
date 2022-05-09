@@ -1,6 +1,6 @@
 {
   "name": "@rapid-cg/sqlite-generator",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -10,19 +10,23 @@
     "directory": "pkg/sqlite-generator"
   },
   "dependencies": {
-    "@rapid-cg/schema": "0.5.0",
-    "@rapid-cg/sqlite": "0.5.0",
+    "@rapid-cg/schema": "^1.0.0",
+    "@rapid-cg/sqlite": "^1.0.0",
     "@types/better-sqlite3": "^7.4.0",
-    "commander": "^8.3.0",
+    "commander": "^9.2.0",
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
     "pluralize": "^8.0.0",
     "prettier": "^2.4.1",
-    "tiny-invariant": "^1.2.0"
+    "tiny-invariant": "^1.2.0",
+    "zod": "^3.11.6"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.176",
     "@types/mkdirp": "^1.0.2",
     "@types/pluralize": "^0.0.29"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

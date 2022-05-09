@@ -46,3 +46,11 @@ test-full:
     set -uei
     robo build-tests
     jest --coverage
+
+foreach:
+  summary: run a command in each package directory
+  command: |
+    for pkg in pkg/*; do
+      (cd "$pkg"; bash -c "$1")
+    done
+

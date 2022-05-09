@@ -1,6 +1,7 @@
-import SQL from "./tag.js";
+import type SQL from "./tag.js";
 
-const { getMatchers } = require("expect/build/jestMatchersObject");
+// @ts-ignore - ts-jest won't pick up the .d.ts file
+import matchers from "expect/build/matchers";
 
 function parse(stmt: SQL.Template) {
   return { sql: stmt.sql, values: stmt.values };
@@ -8,7 +9,7 @@ function parse(stmt: SQL.Template) {
 
 expect.extend({
   toEqualSQL(received: SQL.Template, expected: SQL.Template) {
-    return getMatchers().toEqual.call(this, parse(received), parse(expected));
+    return matchers.toEqual.call(this, parse(received), parse(expected));
   },
 });
 
