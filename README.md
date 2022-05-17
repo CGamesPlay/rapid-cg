@@ -26,8 +26,8 @@ You can see an example project in [tests/basic](https://github.com/CGamesPlay/ra
 **Install dependencies.** You need to install the dependencies that you will be using. Rapid-CG is divided up into several packages, including both runtime and development-only packages. This will install the base dependencies, SQLite generator, and SQLite runtime.
 
 ```bash
-yarn add -D @rapid-cg/cli @rapid-cg/schema @rapid-cg/sqlite-generator
-yarn add @rapid-cg/sqlite zod
+npm install -D @rapid-cg/cli @rapid-cg/schema @rapid-cg/sqlite-generator
+npm install @rapid-cg/sqlite zod
 ```
 
 You also need to verify that your `tsconfig.json` specifies `"target": "es2019"` or later, because the code generation requires ES6 classes.
