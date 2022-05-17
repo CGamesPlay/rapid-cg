@@ -11,6 +11,7 @@
       "@rapid-cg/*": ["pkg/*/src"]
     },
     "sourceMap": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

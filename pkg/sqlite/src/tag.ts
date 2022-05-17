@@ -21,18 +21,60 @@ export declare namespace SQL {
 }
 
 export interface SQL {
+  /**
+   * Create an SQL template string. Example:
+   *
+   * ```typescript
+   * const email = "user@example.com";
+   * const user = $db.get(SQL`SELECT * FROM users WHERE email = ${email}`);
+   * ```
+   */
   (
     strings: readonly string[],
     ...values: readonly SQL.RawValue[]
   ): SQL.Template;
+
+  /**
+   * Merge multiple values with the provided separator. Example:
+   *
+   * ```typescript
+   * const userIds = [1, 2, 3];
+   * const users = $db.all(
+   *   SQL`SELECT * FROM users WHERE id IN (${SQL.join(userIds, ", ")})`
+   * );
+   * ```
+   */
   join(values: readonly SQL.RawValue[], separator?: string): SQL.Template;
+
+  /**
+   * Return an SQL fragment equal to this value with no escaping. This allows
+   * you to inject arbitrary SQL into your queries and there are very few
+   * reasons it should ever be used. Example:
+   *
+   * ```typescript
+   * const arbitrarySqlString = "DELETE FROM tbl";
+   * $db.run(SQL.raw(arbitrarySqlString));
+   * ```
+   */
   raw(value: string): SQL.Template;
+
+  /**
+   * An empty SQL fragment. Equivalent to ``` SQL`` ```.
+   */
   empty: SQL.Template;
+
+  /**
+   * Return an SQL fragment that quotes the given value as an identifier,
+   * suitable for use as a table or column name. Example:
+   *
+   * ```typescript
+   * const tableName = "table names can have spaces in them";
+   * const data = $db.all(SQL`SELECT * FROM ${SQL.id(tableName)}`);
+   * ```
+   */
   id(value: string): SQL.Template;
 }
 
-// Quotes the string as an identifier, suitable for use as a table or column
-// name.
 function sqlId(id: string): SQL.Template {
   return sqlRaw(`"${id.replace(/"/g, '""')}"`);
 }

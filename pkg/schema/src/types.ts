@@ -70,7 +70,7 @@ export const Column = z.union([
 ]);
 export type Column = z.infer<typeof Column>;
 
-const RelationBase = z.object({
+export const RelationBase = z.object({
   type: z.literal("relation"),
   relationType: z.enum(["belongsTo", "hasOne", "hasMany"]),
   name: z.string().refine(validIdentifier, { message: "Invalid identifier" }),
@@ -78,7 +78,7 @@ const RelationBase = z.object({
   foreignColumn: z.string(),
 });
 
-const ModelSchemaBase = z.object({
+export const ModelSchemaBase = z.object({
   name: z.string().refine(validIdentifier, { message: "Invalid identifier" }),
   tableName: z.string(),
   columns: z.record(Column),

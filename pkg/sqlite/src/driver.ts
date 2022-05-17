@@ -18,6 +18,11 @@ export declare namespace Database {
   type Database = BaseDatabase.Database;
 }
 
+/**
+ * This class is a thin wrapper around
+ * [better-sqlite](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md)
+ * that adds support the {@link SQL | SQL template tags}.
+ */
 export class Database extends BaseDatabase {
   constructor(filename: string, options?: BaseDatabase.Options) {
     super(filename, options);
@@ -31,36 +36,51 @@ export class Database extends BaseDatabase {
     this.pragma("foreign_keys = ON");
   }
 
-  // Execute a query and return information about the execution.
+  /** Execute a query and return information about the execution. */
   run(query: SQL.Template): Database.RunResult {
     return this.prepare(query.sql).run(...query.values);
   }
 
-  // Execute a query and return the first row.
+  /**
+   * Execute a query and return the first row.
+   * @typeparam T the expected return type of the query
+   */
   get<T extends Record<string, unknown>>(query: SQL.Template): T | undefined {
     return this.prepare(query.sql).get(...query.values);
   }
 
-  // Execute a query and return all results.
+  /**
+   * Execute a query and return all rows in an array.
+   * @typeparam T the expected return type of the query
+   */
   all<T extends Record<string, unknown>>(query: SQL.Template): T[] {
     return this.prepare(query.sql).all(...query.values);
   }
 
-  // Execute a query and return an iterator over the results.
+  /**
+   * Execute a query and return an iterator over the results.
+   * @typeparam T the expected return type of the query
+   */
   iterate<T extends Record<string, unknown>>(
     query: SQL.Template
   ): IterableIterator<T> {
     return this.prepare(query.sql).iterate(...query.values);
   }
 
-  // Execute a query and return the first column of the first row.
+  /**
+   * Execute a query and return the first column of the first row.
+   * @typeparam T the expected data type of the column
+   */
   pluckOne<T extends unknown>(query: SQL.Template): T | undefined {
     return this.prepare(query.sql)
       .pluck()
       .get(...query.values);
   }
 
-  // Execute a query and return the first column of each row.
+  /**
+   * Execute a query and return the first column of each row.
+   * @typeparam T the expected data type of the column
+   */
   pluckAll<T extends unknown>(query: SQL.Template): T[] {
     return this.prepare(query.sql)
       .pluck()
